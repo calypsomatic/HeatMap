@@ -6,7 +6,7 @@ import Geolocation from '@react-native-community/geolocation';
 import L from 'leaflet';
 import findIntersections from './map.js';
 import Grid from './Grid.js';
-// import {storeData, getMyObject} from './storage.js';
+import {storeData, getMyObject} from './storage.js';
 
 var bigInt = require("big-integer");
 delete L.Icon.Default.prototype._getIconUrl;
@@ -68,19 +68,19 @@ class MapView extends Component {
 
   }
 
-  renderGrid(){
-    if (this.state.polygons){
-      console.log(this.refs.map);
-      return <Grid opacity="0.9" poly={this.state.polygons} map={this.refs.map}/>
-    }
-  }
-
-  // renderPolygon(){
+  // renderGrid(){
   //   if (this.state.polygons){
-  //       getMyObject().then( res => console.log(res));
-  //       return <Polygon fillColor="purple" positions={this.state.polygons} stroke={false}/>
-  //     }
+  //     console.log(this.refs.map);
+  //     return <Grid opacity="0.9" poly={this.state.polygons} map={this.refs.map}/>
+  //   }
   // }
+
+  renderPolygon(){
+    if (this.state.polygons){
+        // getMyObject().then( res => console.log(res));
+        return <Polygon fillColor="purple" positions={this.state.polygons} stroke={false}/>
+      }
+  }
 
   render() {
 
@@ -101,7 +101,7 @@ class MapView extends Component {
         <Popup> You are here </Popup>
         </Marker>
         {
-          this.renderGrid()
+          this.renderPolygon()
         }
       </Map>
     );
