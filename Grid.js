@@ -5,18 +5,41 @@ import L from "leaflet";
 
 class Grid extends GridLayer {
 
+  constructor(props) {
+    super(props);
+    console.log("constructor:")
+    console.log(props);
+    this.state = {
+      polygons: props.poly,
+      map: props.leaflet.map
+    }
+    console.log(this.state);
+  }
+
+  //taken from here: https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
+  pnpoly(nvert, verts, testx, testy) {
+    var i, j, c = 0;
+    for (i = 0, j = nvert-1; i < nvert; j = i++) {
+      if ( ((verts[i][1]>testy) != (verts[j][1]>testy)) &&
+        (testx < (verts[j][0]-verts[i][0]) * (testy-verts[i][1]) / (verts[j][1]-verts[i][1]) + verts[i][0]) ){
+          c = !c;
+        }
+      }
+      return c;
+    }
+
   createLeafletElement() {
 
     // const poly = this.props.poly;
-    this.state = {
-      polygons: this.props.poly,
-      map: this.props.map
-    };
+    // this.state = {
+    //   polygons: this.props.poly,
+    //   map: this.props.map
+    // };
 
     const Layer = L.GridLayer.extend({
       createTile: (coords) => {
-        console.log("create tiles");
-        console.log(this.state);
+        // console.log("create tiles");
+        // console.log(this.state);
         var tile = L.DomUtil.create('canvas', 'leaflet-tile');
         var ctx = tile.getContext('2d');
         var size = this.leafletElement.getTileSize()
@@ -26,31 +49,21 @@ class Grid extends GridLayer {
         var nwPoint = coords.scaleBy(size)
 
         // calculate geographic coordinates of top left tile pixel
-        var nw = this.state.map.leafletElement.unproject(nwPoint, coords.z)
+        // var nw = this.state.map.leafletElement.unproject(nwPoint, coords.z)
+        var nw = this.state.map.unproject(nwPoint, coords.z)
 
-        console.log(this.props.poly)
-        console.log(nw);
+        // console.log(this.props.poly)
+        // console.log(nw);
 
-        var minX = this.props.poly[ 0 ][0];
-        var maxX = this.props.poly[ 0 ][0];
-        var minY = this.props.poly[ 0 ][1];
-        var maxY = this.props.poly[ 0 ][1];
-        for (var i = 1 ; i < this.props.poly.length ; i++ )    {
-         var q = this.props.poly[i];
-         console.log(q);
-         minX = Math.min( q[0], minX );
-         maxX = Math.max( q[0], maxX );
-         minY = Math.min( q[1], minY );
-         maxY = Math.max( q[1], maxY );
-       }
+       var xs = []
 
-       console.log(minX, maxX, minY, maxY);
-       if ( nw.lat < minX || nw.lat > maxX || nw.lng < minY || nw.lng > maxY )
+       if (this.pnpoly(this.props.poly.length, this.props.poly, nw.lat, nw.lng))
        {
-        ctx.fillStyle = "rgba(192, 192, 192, 0.9)";
+         ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+
         }
 else {
-  ctx.fillStyle = "rgba(150, 102, 92, 0.3)";
+  ctx.fillStyle = "rgba(192, 192, 192, 0.9)";
 
 }
 
