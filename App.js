@@ -2,6 +2,8 @@ import React, {Component} from 'react';
 import MapView from './MapView';
 import {StyleSheet,TouchableOpacity, Alert, View, Text} from 'react-native';
 import './App.css';
+import './node_modules/leaflet/dist/leaflet.css';
+
 import Geolocation from '@react-native-community/geolocation';
 
 function App() {

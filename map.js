@@ -15,6 +15,9 @@ const findIntersections = async (location) => {
 	var currlat = location.lat;
 	var currlon = location.lng;
 	var rad = 0.002;
+
+//TODO Get all polygons within this radius before calling osmapi
+
 	var osmapi = "https://www.openstreetmap.org/api/0.6/"
 	var osm =		osmapi + "map?bbox="+(currlon-rad)+","+(currlat-rad)+","+(currlon+rad)+","+(currlat+rad)
 	// fetch(osm)
@@ -25,6 +28,7 @@ const findIntersections = async (location) => {
 	//TODO Deal with errors and such
 	var resp = await fetch(osm);
  	var str = await resp.text();
+	console.log(str);
 	var result = new window.DOMParser().parseFromString(str, "text/xml");
 			 // this.setState({
 				//  isLoaded: true,
@@ -231,10 +235,10 @@ const findIntersections = async (location) => {
 			//  return [[minIsx1, mp1], [minIsx2, mp2]]
 		 // }
 
-
-		 function findSideIntersectionsByDistanceWithMidpoints(isxId, wayId){
+		 //TRYING TO ACCOMMODATE FOR MORE THAN ONE STREET
+		 function findSideIntersectionsByDistanceWithMidpoints(isxId, wayIds){
 			 var isxNode = GetElementsByAttribute(result, "node", "id", isxId)[0];
-			 var streetIx = intersections_by_wayId[wayId].filter(node => node != isxId);
+			 var streetIx = wayIds.map((wid) => intersections_by_wayId[wid]).flat().filter(node => node != isxId);
 			 var minSide1 = 100000;
 			 var minIsx1 = null;
 			 var mp1 = null
@@ -271,6 +275,46 @@ const findIntersections = async (location) => {
 		 }
 
 
+//ASSUMING THERE'S ONLY ONE STREET
+		 // function findSideIntersectionsByDistanceWithMidpoints(isxId, wayId){
+			//  var isxNode = GetElementsByAttribute(result, "node", "id", isxId)[0];
+			//  var streetIx = intersections_by_wayId[wayId].filter(node => node != isxId);
+			//  var minSide1 = 100000;
+			//  var minIsx1 = null;
+			//  var mp1 = null
+			//  var minSide2 = 1000000;
+			//  var minIsx2= null;
+			//  var mp2 = null;
+		 //
+			//  var minSign = null;
+			//  var isxNodeLat = parseFloat(isxNode.getAttribute("lat"));
+			//  var isxNodeLon = parseFloat(isxNode.getAttribute("lon"));
+		 //
+			//  streetIx.forEach((x, i) => {
+			// 	 var node = GetElementsByAttribute(result, "node", "id", x)[0];
+		 //
+			// 	 // var dist = new Decimal(node.getAttribute("lat")-isxNode.getAttribute("lat")).toPower(2).plus(new Decimal(node.getAttribute("lon")-isxNode.getAttribute("lon")).toPower(2)).sqrt();
+			// 	 var nodeLat = parseFloat(node.getAttribute("lat"));
+			// 	 var nodeLon = parseFloat(node.getAttribute("lon"));
+			// 	 var dist = Math.sqrt(Math.pow(nodeLat-isxNodeLat,2) + Math.pow(nodeLon-isxNodeLon,2));
+			// 	 if ((!minIsx1 || (Math.sign(isxNodeLat-nodeLat) == minSign)) && dist < minSide1){
+			// 		 minSide1 = dist;
+			// 		 minIsx1 = node;
+			// 		 minSign = Math.sign(isxNodeLat-nodeLat);
+			// 		 mp1 = [(nodeLat + isxNodeLat)/2.0, (nodeLon + isxNodeLon)/2.0]
+			// 		 // mp1 = [new Decimal(node.getAttribute("lat")).plus(new Decimal(isxNode.getAttribute("lat"))).dividedBy(2).toNumber(), new Decimal(node.getAttribute("lon")).plus(new Decimal(isxNode.getAttribute("lon"))).dividedBy(2).toNumber()]
+			// 	 }
+			// 	 else if ((!minIsx2 || (Math.sign(isxNodeLat-nodeLat) == minSign)) && dist < minSide2){
+			// 		 minSide2 = dist;
+			// 		 minIsx2 = node;
+			// 		 // mp2 = [new Decimal(node.getAttribute("lat")).plus(new Decimal(isxNode.getAttribute("lat"))).dividedBy(2).toNumber(), new Decimal(node.getAttribute("lon")).plus(new Decimal(isxNode.getAttribute("lon"))).dividedBy(2).toNumber()]
+			// 		 mp2 = [(nodeLat + isxNodeLat)/2.0, (nodeLon + isxNodeLon)/2.0]
+			// 	 }
+			//  });
+			//  return [[minIsx1, mp1], [minIsx2, mp2]]
+		 // }
+
+
 		 //TODO good chance this won't always work
 		 var yourWay = ways_by_refNodeId[minStreetNode.getAttribute("id")][0]
 		 var sides = findSideIntersectionsFromNodeAndWay(minStreetNode, yourWay);
@@ -284,13 +328,17 @@ const findIntersections = async (location) => {
 			if (item){
 				var node = GetElementsByAttribute(result, "node", "id", item)[0]
 				var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
-				markers.push({position: ll, label: node.getAttribute("id")});
+				markers.push({position: ll, label: "original side: " + node.getAttribute("id")});
 			}
 	 });
 
 			 //Now for each intersection aside you, find their sides:
 			 //TODO clean up this whole mess
-			 var sides1way = ways_by_refNodeId[sides[0]].filter(node => node != yourWay)[0];
+			 //ASSUMING THERE'S ONLY ONE STREET
+			 // var sides1way = ways_by_refNodeId[sides[0]].filter(node => node != yourWay)[0];
+
+			 //TRYING TO ACCOMMODATE FOR MORE THAN ONE STREET
+			 var sides1ways = ways_by_refNodeId[sides[0]].filter(node => node != yourWay);
 			 // var streetIx = intersections_by_wayId[sides1way].filter(node => node != sides[0]);
 			 // streetIx.forEach((item, i) => {
 				//  var node = GetElementsByAttribute(result, "node", "id", item)[0]
@@ -298,57 +346,121 @@ const findIntersections = async (location) => {
 				//  markers.push({position: ll, label: "street: " + sides1way + " node: " + node.getAttribute("id")});
 			 // });
 
-			 var sides1 = findSideIntersectionsByDistanceWithMidpoints(sides[0], sides1way);
+			 //ASSUMING THERE'S ONLY ONE STREET
+			 // var sides1 = findSideIntersectionsByDistanceWithMidpoints(sides[0], sides1way);
+
+			 //TRYING TO ACCOMMODATE FOR MORE THAN ONE STREET
+			 var sides1 = findSideIntersectionsByDistanceWithMidpoints(sides[0], sides1ways);
 
 			 if (debug){
 				 console.log("sides1:");
 				 console.log(sides1);
 			 }
+
+			 var polygon = [];
+
 			 //
 			 sides1.forEach((item, i) => {
+				 if (item.some(el => !!el)){
+					 console.log(item);
+					 polygon.push([item[1][0], item[1][1]]);
 			     var ll = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
-					 markers.push({position: ll, label: item[0].getAttribute("id")});
+					 markers.push({position: ll, label: "sides1: " + item[0].getAttribute("id")});
+				 }
 			 });
-			 // //
-			 var sides2way = ways_by_refNodeId[sides[1]].filter(node => node != yourWay)[0];
+			 //ASSUMING THERE'S ONLY ONE STREET
+			 // var sides2way = ways_by_refNodeId[sides[1]].filter(node => node != yourWay)[0];
 
-			 var streetIx = intersections_by_wayId[sides2way].filter(node => node != sides[1]);
+			 //TRYING TO ACCOMMODATE FOR MORE THAN ONE STREET
+			 var sides2ways = ways_by_refNodeId[sides[1]].filter(node => node != yourWay);
+
+
+			// var streetIx = intersections_by_wayId[sides2way].filter(node => node != sides[1]);
+
+
 			 // streetIx.forEach((item, i) => {
 				//  var node = GetElementsByAttribute(result, "node", "id", item)[0]
 				//  var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
 				//  markers.push({position: ll, label: "street: " + sides2way + " node: " + node.getAttribute("id")});
 			 // });
-			 var sides2 = findSideIntersectionsByDistanceWithMidpoints(sides[1], sides2way);
+
+			 //ASSUMING THERE'S ONLY ONE STREET
+			// var sides2 = findSideIntersectionsByDistanceWithMidpoints(sides[1], sides2way);
+
+			 //TRYING TO ACCOMMODATE FOR MORE THAN ONE STREET
+			 var sides2 = findSideIntersectionsByDistanceWithMidpoints(sides[1], sides2ways);
 
 			 if (debug){
 				 console.log("sides2:");
 				 console.log(sides2);
 			 }
-			 //
-			 //
+
+
 			 sides2.forEach((item, i) => {
+				 if (item.some(el => !!el)){
+					 polygon.push([item[1][0], item[1][1]]);
 			     var ll = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
-					 markers.push({position: ll, label: item[0].getAttribute("id")});
+					 markers.push({position: ll, label: "sides2: " + item[0].getAttribute("id")});
+				 }
 			 });
 
+			 //EXPERIMENTAL
+			 if (sides2.map(el => el.filter(e => !!e)).filter( g => g.length > 0).length < 2){
+				 //find closest node on the other side where the street node would be
+				 // function findClosestNodeAndIntersection(latlong)
+				 // {
+					 //Let's try to find out which street you are on and what the closest intersection is
+					 var minStreet = 100000;
+					 var minStreetNode = null;
+					 var minp = [];
 
-			 if (debug){
-				 console.log("[sides1[0][1][0]: " + sides1[0][1][0]);
-				 console.log("sides1[0][1][1]]: " + sides1[0][1][1]);
-				 console.log("sides1[1][1][0]]: " + sides1[1][1][0]);
-				 console.log("sides1[1][1][1]]: " + sides1[1][1][1]);
-				 console.log("sides2[1][1][0]]: " + sides2[1][1][0]);
-				 console.log("sides2[1][1][1]]: " + sides2[1][1][1]);
-				 console.log("sides2[0][1][0]]: " + sides2[0][1][0]);
-				 console.log("sides2[0][1][1]]: " + sides2[0][1][1]);
-			 }
+					 var sideNode = GetElementsByAttribute(result, "node", "id", sides[1])[0]
+					 var sideLat = parseFloat(sideNode.getAttribute("lat"));
+					 var sideLon = parseFloat(sideNode.getAttribute("lon"));
 
-			 var polygon = [
-					 [sides1[0][1][0], sides1[0][1][1]],
-					 [sides1[1][1][0], sides1[1][1][1]],
-					 [sides2[0][1][0], sides2[0][1][1]],
-					 [sides2[1][1][0], sides2[1][1][1]]
-			 ];
+					 var side2Lat = parseFloat(sides2[0][0].getAttribute("lat"));
+					 var side2Lon = parseFloat(sides2[0][0].getAttribute("lon"));
+
+					 var latSign = Math.sign(sideLat-side2Lat);
+					 var lonSign = Math.sign(sideLon-side2Lon);
+
+					 allNodes.filter(node => node != sides[1]).forEach((x, i) => {
+						 var node = GetElementsByAttribute(result, "node", "id", x)[0];
+						 var nodeLat = parseFloat(node.getAttribute("lat"));
+						 var nodeLon = parseFloat(node.getAttribute("lon"));
+
+						 if (Math.sign(sideLat-nodeLat) != latSign && Math.sign(sideLon-nodeLon) != lonSign){
+							 var dist = Math.sqrt(Math.pow(nodeLat-sideLat,2) + Math.pow(nodeLon-sideLon,2));
+							 if (dist < minStreet){
+								 minStreet = dist;
+								 minStreetNode = node;
+								 minp = [(nodeLat + sideLat)/2.0, (nodeLon + sideLon)/2.0]
+							 }
+						 }
+ 				 	})
+					polygon.push(minp)
+					var ll = new L.LatLng(minStreetNode.getAttribute("lat"), minStreetNode.getAttribute("lon"));
+					markers.push({position: ll, label: "extra: " + minStreetNode.getAttribute("id")});
+		 }
+
+
+			 // if (debug){
+				//  console.log("[sides1[0][1][0]: " + sides1[0][1][0]);
+				//  console.log("sides1[0][1][1]]: " + sides1[0][1][1]);
+				//  console.log("sides1[1][1][0]]: " + sides1[1][1][0]);
+				//  console.log("sides1[1][1][1]]: " + sides1[1][1][1]);
+				//  console.log("sides2[1][1][0]]: " + sides2[1][1][0]);
+				//  console.log("sides2[1][1][1]]: " + sides2[1][1][1]);
+				//  console.log("sides2[0][1][0]]: " + sides2[0][1][0]);
+				//  console.log("sides2[0][1][1]]: " + sides2[0][1][1]);
+			 // }
+
+			 // var polygon = [
+				// 	 [sides1[0][1][0], sides1[0][1][1]],
+				// 	 [sides1[1][1][0], sides1[1][1][1]],
+				// 	 [sides2[0][1][0], sides2[0][1][1]],
+				// 	 [sides2[1][1][0], sides2[1][1][1]]
+			 // ];
 
 			 // return polygon;
 			 return {polygon: polygon, markers: markers};
