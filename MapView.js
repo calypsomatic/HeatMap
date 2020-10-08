@@ -68,7 +68,18 @@ class MapView extends Component {
 
   }
 
+<<<<<<< HEAD
   // renderGrid(){
+=======
+  renderGrid(){
+    if (this.state.polygons){
+        // getMyObject().then( res => console.log(res));
+        return  <Polygon fillColor="purple" positions={this.state.polygons} stroke={false}/>
+      }
+  }
+
+  // renderPolygon(){
+>>>>>>> marking-map
   //   if (this.state.polygons){
   //     console.log(this.refs.map);
   //     return <Grid opacity="0.9" poly={this.state.polygons} map={this.refs.map}/>
@@ -103,6 +114,11 @@ class MapView extends Component {
         {
           this.renderPolygon()
         }
+        {this.state.markers.map((marker) => (
+                    <Marker position={marker.position} key={marker.position.lat + marker.position.lng}>
+                    <Popup> {marker.label} </Popup>
+                    </Marker>
+                ))}
       </Map>
     );
   }
