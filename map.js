@@ -1,23 +1,19 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
-import {storeData, getMyObject} from './storage.js';
+import {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds} from './storage.js';
+import StreetPolygon from './StreetPolygon.js';
 
-var debug = true;
+const debug = false;
+const markers = [];
+const polygon = [];
 
-const findIntersections = async (location) => {
+//Not sure if this will want to be changed, or when
+const rad = 0.002;
 
-	console.log("finding intersections");
-
-	if (debug){
-		console.log(location);
-	}
-	var markers = [];
-
+//TODO This should probably be async
+export const createNewIntersections = async (location) => {
 
 	var currlat = location.lat;
 	var currlon = location.lng;
-	var rad = 0.002;
-
-//TODO Get all polygons within this radius before calling osmapi
 
 	var osmapi = "https://www.openstreetmap.org/api/0.6/"
 	var osm =		osmapi + "map?bbox="+(currlon-rad)+","+(currlat-rad)+","+(currlon+rad)+","+(currlat+rad)
@@ -36,6 +32,12 @@ const findIntersections = async (location) => {
 	if (debug){
 		console.log("streetrelationids: ", streetrelationids);
 	}
+
+	///JUST A TEST
+	getPolygonsByMultipleStreetIds(streetrelationids).then( (res) =>{
+		console.log(res);
+	}
+	)
 
 	 var relationmemberids = {}
 	 streetrelationids.forEach((item, i) => {
@@ -144,7 +146,7 @@ const findIntersections = async (location) => {
 	 }
 
 	 //returns [closestNode, closestIntersectionNode]
-	 function findClosestNodeAndIntersection(latlong)
+	 function findClosestNodeAndIntersection(lat, lng)
 	 {
 		 //Let's try to find out which street you are on and what the closest intersection is
 		 var minStreet = 100000;
@@ -156,7 +158,7 @@ const findIntersections = async (location) => {
 			 var node = GetElementsByAttribute(result, "node", "id", x)[0];
 
 			 // var dist = new Decimal(node.getAttribute("lat")-latlong.lat).toPower(2).plus(new Decimal(node.getAttribute("lon")-latlong.lng).toPower(2)).sqrt();
-			 var dist = Math.sqrt(Math.pow(parseFloat(node.getAttribute("lat"))-parseFloat(latlong.lat),2) + Math.pow(parseFloat(node.getAttribute("lon"))-parseFloat(latlong.lng),2));
+			 var dist = Math.sqrt(Math.pow(parseFloat(node.getAttribute("lat"))-parseFloat(lat),2) + Math.pow(parseFloat(node.getAttribute("lon"))-parseFloat(lng),2));
 			 if (dist < minStreet){
 				 minStreet = dist;
 				 minStreetNode = node;
@@ -170,7 +172,7 @@ const findIntersections = async (location) => {
 			 return [minStreetNode, minIsxNode];
 	 }
 
-	 var nodeandIx = findClosestNodeAndIntersection(location);
+	 var nodeandIx = findClosestNodeAndIntersection(currlat, currlon);
 
 	 if (debug){
 		 console.log("nodeandIx:");
@@ -362,8 +364,6 @@ const findIntersections = async (location) => {
 				 console.log(sides1);
 			 }
 
-			 var polygon = [];
-
 			 //
 			 sides1.forEach((item, i) => {
 				 if (item.some(el => !!el)){
@@ -448,27 +448,11 @@ const findIntersections = async (location) => {
 					markers.push({position: ll, label: "extra: " + minStreetNode.getAttribute("id")});
 		 }
 
-
-			 // if (debug){
-				//  console.log("[sides1[0][1][0]: " + sides1[0][1][0]);
-				//  console.log("sides1[0][1][1]]: " + sides1[0][1][1]);
-				//  console.log("sides1[1][1][0]]: " + sides1[1][1][0]);
-				//  console.log("sides1[1][1][1]]: " + sides1[1][1][1]);
-				//  console.log("sides2[1][1][0]]: " + sides2[1][1][0]);
-				//  console.log("sides2[1][1][1]]: " + sides2[1][1][1]);
-				//  console.log("sides2[0][1][0]]: " + sides2[0][1][0]);
-				//  console.log("sides2[0][1][1]]: " + sides2[0][1][1]);
-			 // }
-
-			 // var polygon = [
-				// 	 [sides1[0][1][0], sides1[0][1][1]],
-				// 	 [sides1[1][1][0], sides1[1][1][1]],
-				// 	 [sides2[0][1][0], sides2[0][1][1]],
-				// 	 [sides2[1][1][0], sides2[1][1][1]]
-			 // ];
-
 			 // return polygon;
-			 return {polygon: polygon, markers: markers};
+			 var poly = new StreetPolygon(polygon, wayNames_by_Id[yourWay], yourWay);
+			 var testPoly = new StreetPolygon(polygon.map( (coord) => [coord[0]+1,coord[1]+1]), "Test Street", yourWay + 1);
+			 storeData([poly,testPoly], "polygons");
+			 return {polygon: [poly], markers: markers};
 
 		 // },
 		 // (error) => {
@@ -480,4 +464,37 @@ const findIntersections = async (location) => {
 	 // )
 }
 
-export default findIntersections;
+
+
+
+export const findExistingIntersections = async (location) => {
+
+	console.log("finding intersections");
+
+	if (debug){
+		console.log(location);
+	}
+
+	var currlat = location.lat;
+	var currlon = location.lng;
+	//TODO will need an adjustable radius or something
+
+
+//TODO Don't want to await, want to call this and osmapi.
+	var polyshere = await getPolygonsInBounds([(currlon-rad),(currlat-rad),(currlon+rad),(currlat+rad)]);
+	if (polyshere && polyshere.length){
+		//TODO ??
+		console.log(polyshere);
+		return {polygon: polyshere, markers: polyshere.map( (poly) => poly.corners).flat()};
+	} else {
+		return {}
+	}
+
+
+
+
+//TODO Get all polygons within this radius before calling osmapi - well except we don't know if we have all of them so we have to call it anyway
+
+}
+
+// export default findExistingIntersections, createNewIntersections;

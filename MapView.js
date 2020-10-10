@@ -4,9 +4,10 @@ import 'leaflet/dist/leaflet.css';
 // import './App.css';
 import Geolocation from '@react-native-community/geolocation';
 import L from 'leaflet';
-import findIntersections from './map.js';
-import Grid from './Grid.js';
+import {findExistingIntersections, createNewIntersections} from './map.js';
+import MultiPolygon from './MultiPolygon.js';
 import {storeData, getMyObject} from './storage.js';
+
 
 var bigInt = require("big-integer");
 delete L.Icon.Default.prototype._getIconUrl;
@@ -17,32 +18,12 @@ L.Icon.Default.mergeOptions({
     shadowUrl: require('leaflet/dist/images/marker-shadow.png')
 });
 
-// const storeData = async (values) => {
-//   try {
-//     console.log("storing");
-//     const jsonValue = JSON.stringify(values)
-//     console.log(jsonValue);
-//     await AsyncStorage.setItem('@storage_Key', jsonValue)
-//   } catch (e) {
-//     console.log(e);
-//   }
-// }
-//
-//
-// const getMyObject = async () => {
-//   try {
-//     const jsonValue = await AsyncStorage.getItem('@storage_Key')
-//     console.log(jsonValue);
-//     return jsonValue != null ? JSON.parse(jsonValue) : null
-//   } catch(e) {
-//     console.log(e)
-//   }
-// }
-
 class MapView extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      currentLocation: null,
+      zoom: 14,
       markers: [],
       polygons: null,
       bounds: null
@@ -53,45 +34,31 @@ class MapView extends Component {
   componentDidMount() {
     Geolocation.getCurrentPosition(position => {
       this.setState({
-        currentLocation: { lat: position.coords.latitude, lng: position.coords.longitude },
-          zoom: 14,
-          error: null,
-          isLoaded: false
-      });
-      findIntersections(this.state.currentLocation)
+        currentLocation: { lat: position.coords.latitude, lng: position.coords.longitude }      });
+      findExistingIntersections(this.state.currentLocation)
         .then(res => {
           console.log(res);
-          this.setState({ polygons: res.polygon, markers: res.markers });
-          // storeData(res.polygon)
+          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : []), markers: res.markers });
+        });
+        createNewIntersections(this.state.currentLocation)
+        .then(res => {
+          console.log(res);
+          console.log(res.polygon);
+          console.log(this.state.polygons);
+          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : [])});
         });
    });
 
   }
 
-<<<<<<< HEAD
-  // renderGrid(){
-=======
-  renderGrid(){
-    if (this.state.polygons){
-        // getMyObject().then( res => console.log(res));
-        return  <Polygon fillColor="purple" positions={this.state.polygons} stroke={false}/>
-      }
-  }
-
   // renderPolygon(){
->>>>>>> marking-map
   //   if (this.state.polygons){
-  //     console.log(this.refs.map);
-  //     return <Grid opacity="0.9" poly={this.state.polygons} map={this.refs.map}/>
-  //   }
+  //       // return <Polygon fillColor="purple" positions={this.state.polygons} stroke={false}/>
+  //       return this.state.polygons.map((poly) => (
+  //                   <Polygon fillColor = "purple" positions={poly.corners} key={poly.corners.flat()} stroke={false}/>
+  //               ))
+  //     }
   // }
-
-  renderPolygon(){
-    if (this.state.polygons){
-        // getMyObject().then( res => console.log(res));
-        return <Polygon fillColor="purple" positions={this.state.polygons} stroke={false}/>
-      }
-  }
 
   render() {
 
@@ -99,7 +66,6 @@ class MapView extends Component {
       return <div>Loading</div>
     }
 
-    // console.log(this);
     //TODO: fix attribution.  given here: http://maps.stamen.com/#toner/12/37.7706/-122.3782
 
     return (
@@ -111,14 +77,7 @@ class MapView extends Component {
         <Marker position={this.state.currentLocation}>
         <Popup> You are here </Popup>
         </Marker>
-        {
-          this.renderPolygon()
-        }
-        {this.state.markers.map((marker) => (
-                    <Marker position={marker.position} key={marker.position.lat + marker.position.lng}>
-                    <Popup> {marker.label} </Popup>
-                    </Marker>
-                ))}
+        <MultiPolygon polygons={this.state.polygons}/>
       </Map>
     );
   }
@@ -143,4 +102,8 @@ export default MapView;
 
 // {
 //   this.renderGrid()
+// }
+
+// {
+//   this.renderPolygon()
 // }
