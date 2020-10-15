@@ -1,6 +1,8 @@
 import React, { Component, useState } from 'react';
 import { Polygon } from "react-leaflet";
 
+const colorDict = {0: "purple", 1: "red", 2: "green", 3: "blue", 4: "orange", 5: "yellow"}
+
 class MultiPolygon extends Component {
 
     constructor(props) {
@@ -19,10 +21,10 @@ class MultiPolygon extends Component {
 
     render(){
       if (this.state.polygons){
-        console.log(this.state.polygons);
+        // console.log(this.state.polygons);
         //TODO make key unique
-        return this.state.polygons.map((poly) => (
-                    <Polygon fillColor = "purple" positions={poly.corners} key={poly.corners.flat()} stroke={false}/>
+        return this.state.polygons.map((poly,i) => (
+                    <Polygon fillColor = {colorDict[i%6]} positions={poly.corners} key={poly.id} stroke={false}/>
                 ));
 //          return result;
           // return <Polygon fillColor = "purple" positions={this.state.polygons[0].corners} stroke={false}/>

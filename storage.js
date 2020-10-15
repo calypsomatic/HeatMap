@@ -44,10 +44,14 @@ const getPolygonsBySingleStreetId = async (id) => {
 
 const getPolygonsByMultipleStreetIds = async (ids) => {
   let polys = await getMyObject("polygons");
-  if (!(polys instanceof Array)){
+  console.log(polys);
+  if (polys && !(polys instanceof Array)){
     polys = Object.values(polys).map((item) => toClass(item, StreetPolygon.prototype)).filter( (poly) => ids.includes(poly.street_id));
   }
   //TODO will I need an else?
+  if (!polys){
+    return [];
+  }
   return polys.reduce( (accumulator, obj) => {
     if (!accumulator[obj.street_id]){
       accumulator[obj.street_id] = [];

@@ -8,6 +8,7 @@ import {findExistingIntersections, createNewIntersections} from './map.js';
 import MultiPolygon from './MultiPolygon.js';
 import {storeData, getMyObject} from './storage.js';
 
+const debug = false;
 
 var bigInt = require("big-integer");
 delete L.Icon.Default.prototype._getIconUrl;
@@ -35,17 +36,19 @@ class MapView extends Component {
     Geolocation.getCurrentPosition(position => {
       this.setState({
         currentLocation: { lat: position.coords.latitude, lng: position.coords.longitude }      });
-      findExistingIntersections(this.state.currentLocation)
-        .then(res => {
-          console.log(res);
-          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : []), markers: res.markers });
-        });
+      // findExistingIntersections(this.state.currentLocation)
+      //   .then(res => {
+      //     if (debug){
+      //       console.log(res);
+      //     }
+      //     console.log(this.state);
+      //     this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : [])});
+      //   });
         createNewIntersections(this.state.currentLocation)
         .then(res => {
-          console.log(res);
-          console.log(res.polygon);
-          console.log(this.state.polygons);
-          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : [])});
+          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : []),
+          markers: res.markers.concat(this.state.markers)});
+          // console.log(this.state.markers);
         });
    });
 
@@ -59,6 +62,17 @@ class MapView extends Component {
   //               ))
   //     }
   // }
+
+  renderMarkers(){
+    if(this.state.markers){
+      // console.log(this.state.markers);
+      return this.state.markers.map((marker) => (
+                  <Marker position={marker.position} key={marker.position.lat + marker.position.lng}>
+                  <Popup> {marker.label} </Popup>
+                  </Marker>
+              ))
+    }
+  }
 
   render() {
 
@@ -78,6 +92,9 @@ class MapView extends Component {
         <Popup> You are here </Popup>
         </Marker>
         <MultiPolygon polygons={this.state.polygons}/>
+        {
+          this.renderMarkers()
+        }
       </Map>
     );
   }
@@ -86,12 +103,12 @@ class MapView extends Component {
 export default MapView;
 
 
+//
 // {this.state.markers.map((marker) => (
 //             <Marker position={marker.position} key={marker.position.lat + marker.position.lng}>
 //             <Popup> {marker.label} </Popup>
 //             </Marker>
 //         ))}
-
 
 // <Map ref="map" center={this.state.currentLocation} zoom={this.state.zoom}>
 // <LayerGroup>

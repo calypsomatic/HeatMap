@@ -4,6 +4,9 @@ export default class StreetPolygon {
     this._street_name = street_name;
     this._street_id = street_id;
     this._nvert = corners.length;
+    //TEMP
+    this._id = corners.flat().toString();
+    this.sort_corners();
   }
 
   get corners() {
@@ -12,6 +15,15 @@ export default class StreetPolygon {
 
   get street_id() {
     return this._street_id;
+  }
+
+  get id() {
+    return this._id;
+  }
+
+  sort_corners(){
+    const base = this._corners[0];
+    this._corners.sort((c1, c2) => { return Math.atan2(c2[0]-base[0],c2[1]-base[1])-Math.atan2(c1[0]-base[0],c1[1]-base[1])})
   }
 
   // bounds: [minlon, minlat, maxlon, maxlat]
