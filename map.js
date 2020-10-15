@@ -168,11 +168,11 @@ export const createNewIntersections = async (location) => {
 	 const testid = 11559511;
 
 	 const neighbors = {};
-	 const numtoteststart = 2;
-	 const numtotestend = 3;
+	 const numtoteststart = 0;
+	 const numtotestend = 1;
 	 var bylats = {}
 
-	streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
+	// streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
 		// var bylat = intersections_by_wayId[str].sort( (a,b) => {
 		// 	console.log(a + ": " + GetElementsByAttribute(result, "node", "id", a)[0].getAttribute("lat"));
 		// 	console.log(b + ": " + GetElementsByAttribute(result, "node", "id", b)[0].getAttribute("lat"));
@@ -187,17 +187,17 @@ export const createNewIntersections = async (location) => {
 		// bylats[str] = bylat;
 		// bylat.forEach((item, i) => {
 
-		intersections_by_wayId[str].forEach((item, i) => {
-			console.log("intersection " + i +": " + item);
-			const ways = ways_by_refNodeId[item].filter(node => node != str);
-			 var node = GetElementsByAttribute(result, "node", "id", item)[0]
-			 var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
-			 markers.push({position: ll, label: "intersection " + item});
-			 console.log("getting neighbors for " + item + " with streets: " + ways);
-		 neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(item, ways).map(el => el.filter(e => !!e)).filter( g => g.length > 0);
-		 // neighbors[item] = findSideIntersectionsFromNodeAndWay(GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
-		});
-	});
+	// 	intersections_by_wayId[str].forEach((item, i) => {
+	// 		console.log("intersection " + i +": " + item);
+	// 		const ways = ways_by_refNodeId[item].filter(node => node != str);
+	// 		 var node = GetElementsByAttribute(result, "node", "id", item)[0]
+	// 		 var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
+	// 		 markers.push({position: ll, label: "intersection " + item});
+	// 		 console.log("getting neighbors for " + item + " with streets: " + ways);
+	// 	 neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(item, ways).map(el => el.filter(e => !!e)).filter( g => g.length > 0);
+	// 	 // neighbors[item] = findSideIntersectionsFromNodeAndWay(GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
+	// 	});
+	// });
 
 // console.log("bylats: ", bylats);
 
@@ -210,57 +210,98 @@ export const createNewIntersections = async (location) => {
 		// // neighbors[item] = findSideIntersectionsFromNodeAndWay(GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
 	 // });
 
-	 console.log(neighbors);
+	 function getPerpendiculars(node1, node2){
+		 console.log("getting perps for ", node1, node2);
+		 	const d = 0.01; //TODO figure this out
+			const linevector = [node2[0]-node1[0], node2[1]-node1[1]];
+			const lvsize = Math.sqrt(linevector[0]^2 + linevector[1]^2);
+			const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
+			return [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]],[node2[0]+d*lvnormal[0],node2[1]+d*lvnormal[1]],[node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]],[node2[0]-d*lvnormal[0],node2[1]-d*lvnormal[1]]];
+
+		 	// const slope = (node2[1] - node1[1])/(node2[0] - node1[0]);
+			// const inter = node1[1] - (node1[0]*slope);
+			// const perpslope = 1/(slope);
+			// const perpinter = node1[1] - (node1[0]/slope);
+			// let a = 1;
+			// let b = -2*node1[0];
+			// let c = node1[0]*node1[0] - (2*d*d*slope/3);
+			// let disc = b*b - 4*a*c;
+			// if (disc > 0){
+			// 	let root1 = (-b + Math.sqrt(disc)) / (2 * a);
+    	// 	let root2 = (-b - Math.sqrt(disc)) / (2 * a);
+			// 	let y = perpslope*root1 + perpinter;
+	 }
+
+	 // streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
+		//  // for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
+	 // 	 for (var i = 0; i < 1; i++){
+		// 	 let node1id = intersections_by_wayId[str][i];
+		// 	 let node2id = intersections_by_wayId[str][i+1];
+		// 	 console.log("node1: ", node1id, ", node2: ", node2id);
+		// 	 let node1 = GetElementsByAttribute(result, "node", "id", node1id)[0];
+		// 	 let node2 = GetElementsByAttribute(result, "node", "id", node2id)[0];
+		// 	 let sides = getPerpendiculars([parseFloat(node1.getAttribute("lat")), parseFloat(node1.getAttribute("lon"))],[parseFloat(node2.getAttribute("lat")), parseFloat(node2.getAttribute("lon"))]);
+		// 	 console.log("sides: ", sides);
+		// 	 var poly = new StreetPolygon(sides, wayNames_by_Id[str], str);
+		// 	 polygons.push(poly);
+		//  }
+	 // });
+
+// 	 var poly = new StreetPolygon([currlat,currlon,currlat+0.001,currlon+0.001], 123, 123);
+// 	 console.log(poly);
+// 	 	 polygons.push(poly);
+// console.log(polygons);
+	 // console.log(neighbors);
 
 
-	 Object.keys(neighbors).map( (key) => {
-		 if (key == 71950805){
-			 neighbors[key].forEach((item, i) => {
-				 console.log(item);
-				 if (item){
-					 // var node2 = GetElementsByAttribute(result, "node", "id", item)[0];
-					 if (item[0]){
-						 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
-			  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
-					 }
-					 if (item[1]){
-						 var ll3 = new L.LatLng(item[1][0], item[1][1]);
-			  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
-					 }
-				 }
-			 });
+	 // Object.keys(neighbors).map( (key) => {
+		//  if (key == 71950805){
+		// 	 neighbors[key].forEach((item, i) => {
+		// 		 console.log(item);
+		// 		 if (item){
+		// 			 // var node2 = GetElementsByAttribute(result, "node", "id", item)[0];
+		// 			 if (item[0]){
+		// 				 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
+		// 	  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
+		// 			 }
+		// 			 if (item[1]){
+		// 				 var ll3 = new L.LatLng(item[1][0], item[1][1]);
+		// 	  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
+		// 			 }
+		// 		 }
+		// 	 });
+	 //
+		//  }
+	 //
+	 // })
 
-		 }
-
-	 })
-
-	 streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
-		 // for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
-			 for (var i = 1; i < 2; i++){
-				// console.log("intersections: ", intersections_by_wayId[str][i], " and ", intersections_by_wayId[str][i+1]);
-			 // var c1 = neighbors[bylats[str][i]].map( (corner) => corner[1]);
-			 var c1 = neighbors[intersections_by_wayId[str][i]].map( (corner) => corner[1]);
-			 console.log(c1);
-			 // var c2 = neighbors[bylats[str][i+1]].map( (corner) => corner[1]);
-			 var c2 = neighbors[intersections_by_wayId[str][i+1]].map( (corner) => corner[1]);
-			 console.log(c2);
-			 //TEST:
-			 if (c1.length < 2){
-				 console.log(str + "," + intersections_by_wayId[str][i] + ": only 1 neighbor in c1");
-			 }
-			 if (c2.length < 2){
-				 console.log(str + "," + intersections_by_wayId[str][i+1] + ": only 1 neighbor in c2");
-			 }
-
-
-			 var test = c1.concat(c2);
-			 // console.log("four corners: ", test);
-			 // test.sort( (a, b) => {return a[0] - b[0];});
-			 // console.log("test sorted: ", test);
-			 var poly = new StreetPolygon(test, wayNames_by_Id[str], str)
-			 polygons.push(poly);
-		 }
-	 })
+	 // streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
+		//  // for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
+		// 	 for (var i = 1; i < 2; i++){
+		// 		// console.log("intersections: ", intersections_by_wayId[str][i], " and ", intersections_by_wayId[str][i+1]);
+		// 	 // var c1 = neighbors[bylats[str][i]].map( (corner) => corner[1]);
+		// 	 var c1 = neighbors[intersections_by_wayId[str][i]].map( (corner) => corner[1]);
+		// 	 console.log(c1);
+		// 	 // var c2 = neighbors[bylats[str][i+1]].map( (corner) => corner[1]);
+		// 	 var c2 = neighbors[intersections_by_wayId[str][i+1]].map( (corner) => corner[1]);
+		// 	 console.log(c2);
+		// 	 //TEST:
+		// 	 if (c1.length < 2){
+		// 		 console.log(str + "," + intersections_by_wayId[str][i] + ": only 1 neighbor in c1");
+		// 	 }
+		// 	 if (c2.length < 2){
+		// 		 console.log(str + "," + intersections_by_wayId[str][i+1] + ": only 1 neighbor in c2");
+		// 	 }
+	 //
+	 //
+		// 	 var test = c1.concat(c2);
+		// 	 // console.log("four corners: ", test);
+		// 	 // test.sort( (a, b) => {return a[0] - b[0];});
+		// 	 // console.log("test sorted: ", test);
+		// 	 var poly = new StreetPolygon(test, wayNames_by_Id[str], str)
+		// 	 polygons.push(poly);
+		//  }
+	 // })
 
 	 // for (var i = 0; i < intersections_by_wayId[testid].length-1; i++){
 		//  // for (var i = 0; i < 1; i++){
@@ -635,7 +676,7 @@ export const createNewIntersections = async (location) => {
 			 // return polygon;
 			 var poly = new StreetPolygon(polygon, wayNames_by_Id[yourWay], yourWay);
 			 var testPoly = new StreetPolygon(polygon.map( (coord) => [coord[0]+1,coord[1]+1]), "Test Street", yourWay + 1);
-			 // polygons.push(poly)
+			 polygons.push(poly)
 			 // storeData(polygons, "polygons");
 			 console.log("returning:", poly, markers);
 			 return {polygon: polygons, markers: markers};

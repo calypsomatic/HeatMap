@@ -21,7 +21,7 @@ class MultiPolygon extends Component {
 
     render(){
       if (this.state.polygons){
-        // console.log(this.state.polygons);
+        console.log(this.state.polygons);
         //TODO make key unique
         return this.state.polygons.map((poly,i) => (
                     <Polygon fillColor = {colorDict[i%6]} positions={poly.corners} key={poly.id} stroke={false}/>
