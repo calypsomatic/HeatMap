@@ -211,7 +211,7 @@ export const createNewIntersections = async (location) => {
 	 // });
 
 	 function getPerpendiculars(node1, node2){
-		 console.log("getting perps for ", node1, node2);
+//		 console.log("getting perps for ", node1, node2);
 		 	const d = 0.01; //TODO figure this out
 			const linevector = [node2[0]-node1[0], node2[1]-node1[1]];
 			const lvsize = Math.sqrt(linevector[0]^2 + linevector[1]^2);
