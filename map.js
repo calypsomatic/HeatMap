@@ -165,8 +165,6 @@ export const createNewIntersections = async (location) => {
 		 console.log(allNodes);
 	 }
 
-	 const testid = 11559511;
-
 	 const neighbors = {};
 	 const numtoteststart = 0;
 	 const numtotestend = 1;
