@@ -24,10 +24,11 @@ class MultiPolygon extends Component {
         console.log(this.state.polygons);
         //TODO make key unique
         return this.state.polygons.map((poly,i) => (
-                    <Polygon fillColor = {colorDict[i%6]} positions={poly.corners} key={poly.id} stroke={false}/>
+                    <Polygon fillColor = {colorDict[i%(Object.keys(colorDict).length)]} positions={poly.corners} key={poly.id} stroke={false}/>
                 ));
 //          return result;
           // return <Polygon fillColor = "purple" positions={this.state.polygons[0].corners} stroke={false}/>
+//          <Polygon fillColor = {colorDict[i%6]} positions={poly.corners} key={poly.id} stroke={false}/>
         }
         else{
           return null;

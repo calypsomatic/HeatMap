@@ -23,7 +23,7 @@ class MapView extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      currentLocation: null,
+      currentLocation: {lat: null, lng: null},
       zoom: 14,
       markers: [],
       polygons: null,
@@ -47,9 +47,9 @@ class MapView extends Component {
         createNewIntersections(this.state.currentLocation)
         .then(res => {
           console.log(res);
-          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : [])});
-          // this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : []),
-          // markers: res.markers ? res.markers.concat(this.state.markers) : this.state.markers});
+          // this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : [])});
+          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : []),
+          markers: res.markers ? res.markers.concat(this.state.markers) : this.state.markers});
           // console.log(this.state.markers);
         });
    });
@@ -91,7 +91,7 @@ class MapView extends Component {
           attribution="Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL."
         />
         <Marker position={this.state.currentLocation}>
-        <Popup> You are here </Popup>
+        <Popup> You are here: {this.state.currentLocation.lat}, {this.state.currentLocation.lng} </Popup>
         </Marker>
         <MultiPolygon polygons={this.state.polygons}/>
         {

@@ -1,190 +1,44 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 import {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds} from './storage.js';
 import StreetPolygon from './StreetPolygon.js';
+import {processVoronoi} from './voronoi-processing.js';
+import {getAndProcessStreetData} from './street-data.js';
 
 const debug = true;
 const markers = [];
 const polygons = [];
 
-//Not sure if this will want to be changed, or when
-const rad = 0.002;
-
 export const createNewIntersections = async (location) => {
 
 	console.log("createNewIntersections");
 
-	var currlat = location.lat;
-	var currlon = location.lng;
-
-	var osmapi = "https://www.openstreetmap.org/api/0.6/"
-	var osm =		osmapi + "map?bbox="+(currlon-rad)+","+(currlat-rad)+","+(currlon+rad)+","+(currlat+rad)
-
-	//TODO Deal with errors and such
-	var resp = await fetch(osm);
- 	var str = await resp.text();
-	// console.log(str);
-	var result = new window.DOMParser().parseFromString(str, "text/xml");
-
- 	if (debug){
-		 	console.log(result);
-	}
-	var streetrelationids = getElementsValueByXPath('//relation/tag[@k="type" and @v="street"]/../@id', result);
-
-	if (debug){
-		console.log("streetrelationids: ", streetrelationids);
-	}
+	const currlat = location.lat;
+	const currlon = location.lng;
 
 	///JUST A TEST
-	getPolygonsByMultipleStreetIds(streetrelationids).then( (res) =>{
-		console.log(res);
-	}
-	)
+	// getPolygonsByMultipleStreetIds(streetrelationids).then( (res) =>{
+	// 	console.log(res);
+	// }
+	// )
 
-	 var relationmemberids = {}
-	 streetrelationids.forEach((item, i) => {
-	 		var waymembers = getElementsValueByXPath('//relation[@id="'+item+'"]/member/@ref', result);
-		 	relationmemberids[item] = waymembers;
-	 });
+	let resp = await getAndProcessStreetData(currlat, currlon);
+	const ways_by_refNodeId = resp["ways_by_refNodeId"];
+	const nodes_by_wayId = resp["nodes_by_wayId"];
+	const ways_by_Name = resp["ways_by_Name"];
+	const wayNames_by_Id = resp["wayNames_by_Id"];
+	const intersections_by_wayId = resp["intersections_by_wayId"];
+	const allNodesInRelation = resp["allNodesInRelation"];
+	const intersections_by_nodeId = resp["intersections_by_nodeId"];
+	const streetrelationids = resp["streetrelationids"];
+	const allNodes = resp["allNodes"];
+	const result = resp["result"];
 
-	 var ways_by_refNodeId = {}
-	 var nodes_by_wayId = {}
-	 var ways_by_Name = {}
-	 var wayNames_by_Id = {}
-	 var intersections_by_wayId = {}
-	 var allNodesInRelation = {}
-
-	 if (debug){
-		 console.log(relationmemberids);
-	 }
-
-	//  getMyObject("relationmemberids").then(res => {
- 	// 		if (res != null){
- 	// 			relationmemberids = Object.assign(res, relationmemberids);
- 	// 		}
-	// 		//TODO make this merge data?
- 	// 		storeData(relationmemberids, "relationmemberids");
- 	// });
-
-	 let removeDuplicates = arr => arr.filter((item, index) => arr.indexOf(item) === index);
-
-	 var usekey = null;
-	 //TODO These two different keys are a real mess, deal with them some day
-	 for (const [key, value] of Object.entries(relationmemberids)) {
-		 var allnodes = []
-		 var nodegroups = {}
-		 value.forEach((item, i) => {
-			 var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
-			 var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
-			 if (maybename.length > 0){
-				 if (!wayNames_by_Id[key]){
-					 wayNames_by_Id[key] = maybename[0];
-				 } else if (wayNames_by_Id[key] != maybename[0]){
-					 if (debug){
-					 	console.log("Found two different names: " + wayNames_by_Id[key] + " and " + maybename[0])
-					}
-				 }
-				 if (!ways_by_Name[maybename[0]]){
-					 ways_by_Name[maybename[0]] = [key];
-				 } else if (!ways_by_Name[maybename[0]].includes(key)){
-					 if (debug){
-					 	console.log("Found two different keys for " + maybename[0]);
-					}
-					 ways_by_Name[maybename[0]].push(key);
-					 usekey = ways_by_Name[maybename[0]][0];
-				 }
-			 }
-			 allnodes = allnodes.concat(refnodes);
-			 allnodes = removeDuplicates(allnodes);
-		 });
-		 //EXPERIMENT
-		 if (allNodesInRelation[usekey]){
-			 console.log(usekey + " already exists");
-			 allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(allnodes);
-			 usekey = null;
-		 } else {
-			 allNodesInRelation[key] = allnodes;
-		 }
-		 // allNodesInRelation[key] = allnodes;
-	 }
-
-	 if (debug){
-		 console.log("ways_by_Name:");
-		 console.log(ways_by_Name);
-	 }
-
-	 for (const [key, value] of Object.entries(allNodesInRelation)) {
-		 value.forEach((child, i) => {
-				 if (!ways_by_refNodeId[child]){
-					 ways_by_refNodeId[child] = [key];
-				 } else {
-					 ways_by_refNodeId[child].push(key);
-				 }
-		 });
-	 }
-
-	 if (debug){
-		 console.log("allNodesInRelation:");
-		 console.log(allNodesInRelation);
-		 console.log("ways_by_refNodeId:");
-		 console.log(ways_by_refNodeId);
-	 }
-
-	 // allNodesInRelation[11553284].forEach((item, i) => {
-	 // 		var node = GetElementsByAttribute(result, "node", "id", item)[0];
-		// 	var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
-		// 	markers.push({position: ll, label: "all nodes: " + i});
-	 // });
-
-
-
-
-	 //intersections_by_nodeId's keys are all the nodes that are intersections, and the values are an array of which streets meet it
-	 var intersections_by_nodeId = Object.fromEntries(Object.entries(ways_by_refNodeId).filter(([k,v]) => v.length>1));
-	 if (debug){
-		 console.log("intersections_by_nodeId:");
-		 console.log(intersections_by_nodeId);
-	 }
-
-	 //We need this to preserve order from nodes_by_wayId
-	 for (const [key, value] of Object.entries(allNodesInRelation)) {
-		 var wayixs = value.filter(node => node in intersections_by_nodeId);
-		 intersections_by_wayId[key] = wayixs;
-	 }
-
-	 if (debug){
-		 console.log("intersections_by_wayId:");
-		 console.log(intersections_by_wayId);
-		 console.log("wayNames_by_Id:");
-		 console.log(wayNames_by_Id);
-	 }
-
-	 var allNodes = Object.values(allNodesInRelation).flat();
-
-	 if (debug){
-		 console.log("allNodes:");
-		 console.log(allNodes);
-	 }
 
 	 const neighbors = {};
 	 const numtoteststart = 0;
-	 const numtotestend = 1;
-	 var bylats = {}
+	 const numtotestend = 17;
 
 	// streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
-		// var bylat = intersections_by_wayId[str].sort( (a,b) => {
-		// 	console.log(a + ": " + GetElementsByAttribute(result, "node", "id", a)[0].getAttribute("lat"));
-		// 	console.log(b + ": " + GetElementsByAttribute(result, "node", "id", b)[0].getAttribute("lat"));
-		// 	return GetElementsByAttribute(result, "node", "id", a)[0].getAttribute("lat") - GetElementsByAttribute(result, "node", "id", b)[0].getAttribute("lat");
-		// })
-		// var bylon = intersections_by_wayId[str].sort( (a,b) => {return a[1] - b[1]})
-		// if (bylat[0] == bylon[0]){
-		// 	//use either one
-		// } else {
-		//
-		// }
-		// bylats[str] = bylat;
-		// bylat.forEach((item, i) => {
-
 	// 	intersections_by_wayId[str].forEach((item, i) => {
 	// 		console.log("intersection " + i +": " + item);
 	// 		const ways = ways_by_refNodeId[item].filter(node => node != str);
@@ -193,6 +47,7 @@ export const createNewIntersections = async (location) => {
 	// 		 markers.push({position: ll, label: "intersection " + item});
 	// 		 console.log("getting neighbors for " + item + " with streets: " + ways);
 	// 	 neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(item, ways).map(el => el.filter(e => !!e)).filter( g => g.length > 0);
+	// 	 console.log("neighbors for " + item, neighbors[item]);
 	// 	 // neighbors[item] = findSideIntersectionsFromNodeAndWay(GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
 	// 	});
 	// });
@@ -208,38 +63,74 @@ export const createNewIntersections = async (location) => {
 		// // neighbors[item] = findSideIntersectionsFromNodeAndWay(GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
 	 // });
 
-	 function getPerpendiculars(node1, node2){
-//		 console.log("getting perps for ", node1, node2);
-		 	const d = 0.01; //TODO figure this out
-			const linevector = [node2[0]-node1[0], node2[1]-node1[1]];
-			const lvsize = Math.sqrt(linevector[0]^2 + linevector[1]^2);
-			const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
-			return [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]],[node2[0]+d*lvnormal[0],node2[1]+d*lvnormal[1]],[node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]],[node2[0]-d*lvnormal[0],node2[1]-d*lvnormal[1]]];
+// 	 function getPerpendiculars(node1, node2){
+// //		 console.log("getting perps for ", node1, node2);
+// 			// addCoordsToMarkers([node1,node2], (x,y) => "node " + y);
+// 		 	const d = 0.0001; //TODO figure this out
+// 			// const linevector = [node2[0]-node1[0], node2[1]-node1[1]];
+// 			const linevector = [node2[1]-node1[1], node1[0]-node2[0]];
+// 			const lvsize = Math.sqrt(linevector[0]*linevector[0] + linevector[1]*linevector[1]);
+// 			const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
+// 			return [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]],[node2[0]+d*lvnormal[0],node2[1]+d*lvnormal[1]],[node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]],[node2[0]-d*lvnormal[0],node2[1]-d*lvnormal[1]]];
+// 			// return [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]],[node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]]];
+// 			// return [[node1[0]+d, node1[1]+d], [node1[0]-d, node1[1]-d], [node2[0]+d, node2[1]+d], [node2[0]-d, node2[1]-d]]
+//
+// 		 	// const slope = (node2[1] - node1[1])/(node2[0] - node1[0]);
+// 			// const inter = node1[1] - (node1[0]*slope);
+// 			// const perpslope = 1/(slope);
+// 			// const perpinter = node1[1] - (node1[0]/slope);
+// 			// let a = 1;
+// 			// let b = -2*node1[0];
+// 			// let c = node1[0]*node1[0] - (2*d*d*slope/3);
+// 			// let disc = b*b - 4*a*c;
+// 			// if (disc > 0){
+// 			// 	let root1 = (-b + Math.sqrt(disc)) / (2 * a);
+//     	// 	let root2 = (-b - Math.sqrt(disc)) / (2 * a);
+// 			// 	let y = perpslope*root1 + perpinter;
+// 	 }
 
-		 	// const slope = (node2[1] - node1[1])/(node2[0] - node1[0]);
-			// const inter = node1[1] - (node1[0]*slope);
-			// const perpslope = 1/(slope);
-			// const perpinter = node1[1] - (node1[0]/slope);
-			// let a = 1;
-			// let b = -2*node1[0];
-			// let c = node1[0]*node1[0] - (2*d*d*slope/3);
-			// let disc = b*b - 4*a*c;
-			// if (disc > 0){
-			// 	let root1 = (-b + Math.sqrt(disc)) / (2 * a);
-    	// 	let root2 = (-b - Math.sqrt(disc)) / (2 * a);
-			// 	let y = perpslope*root1 + perpinter;
+
+
+
+// addVertsToMarkers(midpoints, (x,y) => y)
+
+function addVertsToMarkers(verts, labelfunc){
+	verts.forEach((item, i) => {
+		let ll = new L.LatLng(item.x, item.y);
+		 markers.push({position: ll, label: labelfunc(item, i)});
+	});
+}
+
+
+	 function addCoordsToMarkers(coords, labelfunc){
+		 coords.forEach((item, i) => {
+			 let ll = new L.LatLng(item[0], item[1]);
+	  		markers.push({position: ll, label: labelfunc(item, i)});
+		 });
 	 }
 
+	 function labelByCoords(coord, ind){
+		 return coord[0] + "," + coord[1];
+	 }
+
+
+	 //If I want to try Voronoi
+	 let extrapolygons = processVoronoi(result, streetrelationids, intersections_by_wayId);
+	 Array.prototype.push.apply(polygons, extrapolygons);
+
 	 // streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
-		//  // for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
-	 // 	 for (var i = 0; i < 1; i++){
+		//  for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
+	 // 	 // for (var i = 1; i < 2; i++){
 		// 	 let node1id = intersections_by_wayId[str][i];
 		// 	 let node2id = intersections_by_wayId[str][i+1];
 		// 	 console.log("node1: ", node1id, ", node2: ", node2id);
 		// 	 let node1 = GetElementsByAttribute(result, "node", "id", node1id)[0];
 		// 	 let node2 = GetElementsByAttribute(result, "node", "id", node2id)[0];
+		// 	 // let sides1 = getPerpendiculars([parseFloat(node1.getAttribute("lat")), parseFloat(node1.getAttribute("lon"))],[parseFloat(node2.getAttribute("lat")), parseFloat(node2.getAttribute("lon"))]);
 		// 	 let sides = getPerpendiculars([parseFloat(node1.getAttribute("lat")), parseFloat(node1.getAttribute("lon"))],[parseFloat(node2.getAttribute("lat")), parseFloat(node2.getAttribute("lon"))]);
+		// 	 // sides = sides.map( (num) => [parseFloat(num[0].toPrecision(8)),parseFloat(num[1].toPrecision(8))]);
 		// 	 console.log("sides: ", sides);
+		// 	 // addCoordsToMarkers(sides, labelByCoords);
 		// 	 var poly = new StreetPolygon(sides, wayNames_by_Id[str], str);
 		// 	 polygons.push(poly);
 		//  }
@@ -253,7 +144,6 @@ export const createNewIntersections = async (location) => {
 
 
 	 // Object.keys(neighbors).map( (key) => {
-		//  if (key == 71950805){
 		// 	 neighbors[key].forEach((item, i) => {
 		// 		 console.log(item);
 		// 		 if (item){
@@ -268,34 +158,31 @@ export const createNewIntersections = async (location) => {
 		// 			 }
 		// 		 }
 		// 	 });
-	 //
-		//  }
-	 //
 	 // })
 
 	 // streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
-		//  // for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
-		// 	 for (var i = 1; i < 2; i++){
-		// 		// console.log("intersections: ", intersections_by_wayId[str][i], " and ", intersections_by_wayId[str][i+1]);
-		// 	 // var c1 = neighbors[bylats[str][i]].map( (corner) => corner[1]);
+		//  for (var i = 2; i < intersections_by_wayId[str].length-1; i++){
+		// // 	 for (var i = 1; i < 2; i++){
+		// // 		// console.log("intersections: ", intersections_by_wayId[str][i], " and ", intersections_by_wayId[str][i+1]);
+		// // 	 // var c1 = neighbors[bylats[str][i]].map( (corner) => corner[1]);
 		// 	 var c1 = neighbors[intersections_by_wayId[str][i]].map( (corner) => corner[1]);
-		// 	 console.log(c1);
-		// 	 // var c2 = neighbors[bylats[str][i+1]].map( (corner) => corner[1]);
+		// // 	 console.log(c1);
+		// // 	 // var c2 = neighbors[bylats[str][i+1]].map( (corner) => corner[1]);
 		// 	 var c2 = neighbors[intersections_by_wayId[str][i+1]].map( (corner) => corner[1]);
-		// 	 console.log(c2);
-		// 	 //TEST:
-		// 	 if (c1.length < 2){
-		// 		 console.log(str + "," + intersections_by_wayId[str][i] + ": only 1 neighbor in c1");
-		// 	 }
-		// 	 if (c2.length < 2){
-		// 		 console.log(str + "," + intersections_by_wayId[str][i+1] + ": only 1 neighbor in c2");
-		// 	 }
-	 //
-	 //
+		// // 	 console.log(c2);
+		// // 	 //TEST:
+		// // 	 if (c1.length < 2){
+		// // 		 console.log(str + "," + intersections_by_wayId[str][i] + ": only 1 neighbor in c1");
+		// // 	 }
+		// // 	 if (c2.length < 2){
+		// // 		 console.log(str + "," + intersections_by_wayId[str][i+1] + ": only 1 neighbor in c2");
+		// // 	 }
+	 // //
+	 // //
 		// 	 var test = c1.concat(c2);
-		// 	 // console.log("four corners: ", test);
-		// 	 // test.sort( (a, b) => {return a[0] - b[0];});
-		// 	 // console.log("test sorted: ", test);
+		// // 	 // console.log("four corners: ", test);
+		// // 	 // test.sort( (a, b) => {return a[0] - b[0];});
+		// // 	 // console.log("test sorted: ", test);
 		// 	 var poly = new StreetPolygon(test, wayNames_by_Id[str], str)
 		// 	 polygons.push(poly);
 		//  }
@@ -464,6 +351,13 @@ export const createNewIntersections = async (location) => {
 				 }
 			 });
 
+			 // if (!mp1 || !mp2){
+				//  if (!mp1){
+				// 	 mp1 = getPerpendiculars([isxNodeLat, isxNodeLon], mp2)
+				//  } else {
+				// 	 mp2 = getPerpendiculars([isxNodeLat, isxNodeLon], mp1)
+				//  }
+			 // }
 			 //TODO: instead of this, maybe just extend a line from the existing neighbor halfway to next road?
 
 			 // if (!mp1) {
@@ -673,10 +567,17 @@ export const createNewIntersections = async (location) => {
 
 			 // return polygon;
 			 var poly = new StreetPolygon(polygon, wayNames_by_Id[yourWay], yourWay);
+			 // polygon.forEach((item, i) => {
+			 // 	var ll = new L.LatLng(item[0], item[1]);
+				// markers.push({position: ll, label: "corner " + i + ": " + item[0] + "," + item[1]});
+			 // });
+			 //
+			 // console.log("poly:", poly);
 			 var testPoly = new StreetPolygon(polygon.map( (coord) => [coord[0]+1,coord[1]+1]), "Test Street", yourWay + 1);
-			 polygons.push(poly)
+			 // polygons.push(poly)
+			 // polygons.push(testPoly)
 			 // storeData(polygons, "polygons");
-			 console.log("returning:", poly, markers);
+			 console.log("returning:", polygons, markers);
 			 return {polygon: polygons, markers: markers};
 
 		 // },
