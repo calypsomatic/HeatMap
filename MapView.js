@@ -47,7 +47,6 @@ class MapView extends Component {
         createNewIntersections(this.state.currentLocation)
         .then(res => {
           console.log(res);
-          // this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : [])});
           this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : []),
           markers: res.markers ? res.markers.concat(this.state.markers) : this.state.markers});
           // console.log(this.state.markers);
