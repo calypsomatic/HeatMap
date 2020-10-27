@@ -23,7 +23,7 @@ export default class StreetPolygon {
 
   sort_corners(){
     const base = this._corners[0];
-    this._corners.sort((c1, c2) => { return Math.atan2(c2[0]-base[0],c2[1]-base[1])-Math.atan2(c1[0]-base[0],c1[1]-base[1])})
+    this._corners.sort((c1, c2) => { return Math.atan2(c2[1]-base[1],c2[0]-base[0])-Math.atan2(c1[1]-base[1],c1[0]-base[0])})
   }
 
   // bounds: [minlon, minlat, maxlon, maxlat]
