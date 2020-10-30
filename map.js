@@ -8,6 +8,7 @@ import {findSideIntersectionsByDistanceWithMidpoints, findSideIntersectionsFromN
 const debug = true;
 const markers = [];
 const polygons = [];
+const rad = 0.004;
 
 export const createNewIntersections = async (location) => {
 
@@ -358,7 +359,7 @@ export const findExistingIntersections = async (location) => {
 		// return {polygon: polyshere, markers: polyshere.map( (poly) => poly.corners).flat()};
 		return {polygon: polyshere};
 	} else {
-		return {}
+		return {polygon: []}
 	}
 
 }

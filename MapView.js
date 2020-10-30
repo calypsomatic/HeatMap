@@ -36,14 +36,14 @@ class MapView extends Component {
     Geolocation.getCurrentPosition(position => {
       this.setState({
         currentLocation: { lat: position.coords.latitude, lng: position.coords.longitude }      });
-      // findExistingIntersections(this.state.currentLocation)
-      //   .then(res => {
-      //     if (debug){
-      //       console.log(res);
-      //     }
-      //     console.log(this.state);
-      //     this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : [])});
-      //   });
+      findExistingIntersections(this.state.currentLocation)
+        .then(res => {
+          if (debug){
+            console.log(res);
+          }
+          console.log(this.state);
+          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : [])});
+        });
         createNewIntersections(this.state.currentLocation)
         .then(res => {
           console.log(res);
