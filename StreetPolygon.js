@@ -1,12 +1,12 @@
 export default class StreetPolygon {
   constructor(corners, street_name, street_id){
-    this._corners = corners;
+    this._corners = this.sort_corners(corners);
     this._street_name = street_name;
     this._street_id = street_id;
     this._nvert = corners.length;
     //TEMP
     this._id = corners.flat().toString();
-    this.sort_corners();
+
   }
 
   get corners() {
@@ -21,9 +21,10 @@ export default class StreetPolygon {
     return this._id;
   }
 
-  sort_corners(){
-    const base = this._corners[0];
-    this._corners.sort((c1, c2) => { return Math.atan2(c2[1]-base[1],c2[0]-base[0])-Math.atan2(c1[1]-base[1],c1[0]-base[0])})
+  sort_corners(corners){
+    var base = avgCorner(corners)
+    corners.sort((c1,c2) => Math.atan2(c1[0]-base[0],c1[1]-base[1])-Math.atan2(c2[0]-base[0],c2[1]-base[1]))
+    return corners;
   }
 
   // bounds: [minlon, minlat, maxlon, maxlat]
@@ -43,4 +44,14 @@ export default class StreetPolygon {
       }
       return c;
   }
+}
+
+function avgCorner(corners){
+    let x = 0;
+    let y = 0;
+    corners.forEach((item, i) => {
+      x += item[0];
+      y += item[1];
+    });
+    return [x/corners.length,y/corners.length];
 }

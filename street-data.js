@@ -86,7 +86,7 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
     });
     //EXPERIMENT
     if (allNodesInRelation[usekey]){
-      console.log(usekey + " already exists");
+      // console.log(usekey + " already exists");
       allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(allnodes);
       usekey = null;
     } else {

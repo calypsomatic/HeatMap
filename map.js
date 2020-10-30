@@ -3,7 +3,7 @@ import {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreet
 import StreetPolygon from './StreetPolygon.js';
 import {processVoronoi} from './voronoi-processing.js';
 import {getAndProcessStreetData} from './street-data.js';
-import {findSideIntersectionsByDistanceWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection, findSideIntersectionsOnOtherStreet} from './node-processing.js';
+import {findSideIntersectionsByDistanceWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection, findSideIntersectionsOnOtherStreet, findSideIntersectionsOnOtherStreetWithMidpoints} from './node-processing.js';
 
 const debug = true;
 const markers = [];
@@ -82,34 +82,6 @@ export const createNewIntersections = async (location) => {
 	// addNodesToMarkers(collegenodes, labelNodeInOrder)
 	// addNodesToMarkers(hollandnodes, labelNodeInOrder)
 
-// 	let possibledupes = [];
-// 	let intnodes = Object.values(intersections_by_nodeId).map((arr) => {
-// 		let a = arr.slice();
-// 		a.sort();
-// 		return a.toString();
-// 	});
-// 	// intnodes.forEach((item, i) => {
-// 	// 	if (intnodes.indexOf(item) != i){
-// 	// 		possibledupes.push(item)
-// 	// 	}
-// 	// });
-// 	let count = 0;
-// 	for (const [key, value] of Object.entries(intersections_by_nodeId)) {
-// 		let a = value.slice();
-// 		a.sort();
-// 		// if (intnodes.indexOf(a.toString()) != intnodes.lastIndexOf(a.toString())){
-// 		if (intnodes.indexOf(a.toString()) != count){
-// 			possibledupes.push(key)
-// 		}
-// 		count++;
-// 	}
-//
-// console.log("possibledupes:");
-// console.log(possibledupes)
-// addNodesToMarkers(possibledupes, labelNode);
-
-
-
 
 
 
@@ -127,7 +99,7 @@ export const createNewIntersections = async (location) => {
 
 	const neighbors = {};
 	const numtoteststart = 0;
-	const numtotestend = 1;
+	const numtotestend = 16;
 
 	streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
 		let maxlat = currlat - 0.005;
@@ -146,22 +118,15 @@ export const createNewIntersections = async (location) => {
 			 // markers.push({position: ll, label: "intersection " + item + " " + node.getAttribute("lat") + "," + node.getAttribute("lon")});
 			 console.log("getting neighbors for " + item + " with streets: " + ways);
 		 // neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, item, ways).map(el => el.filter(e => !!e)).filter( g => g.length > 0);
-		 neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, item, ways);
-		 console.log("neighbors for " + item, neighbors[item]);
+		 // neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, item, ways);
 		 // neighbors[item] = findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersections_by_nodeId, GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
 		 // neighbors[item] = findSideIntersectionsOnOtherStreet(intersections_by_wayId, intersections_by_nodeId, item, str);
+		 // neighbors[item] = findSideIntersectionsFromNodeAndWayWithMidPoints(result, allNodesInRelation, intersections_by_nodeId, GetElementsByAttribute(result, "node", "id", item)[0], 11553284)
+		 neighbors[item] = findSideIntersectionsOnOtherStreetWithMidpoints(result, intersections_by_wayId, intersections_by_nodeId, item, str)
+		 console.log("neighbors for " + item, neighbors[item]);
 		});
 		console.log(wayNames_by_Id[str] + ": maxlat: ", maxlat, ", maxlon: ", maxlon);
 	});
-
-	 // intersections_by_wayId[testid].forEach((item, i) => {
-		//  const ways = ways_by_refNodeId[item].filter(node => node != testid);
-		//   var node = GetElementsByAttribute(result, "node", "id", item)[0]
-		//   var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
-		//   markers.push({position: ll, label: "intersection " + item});
-	 // 	neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, item, ways);
-		// // neighbors[item] = findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersections_by_nodeId, GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
-	 // });
 
 	 console.log(neighbors);
 
@@ -177,89 +142,41 @@ export const createNewIntersections = async (location) => {
 	 // let extrapolygons = processVoronoi(result, streetrelationids, intersections_by_wayId);
 	 // Array.prototype.push.apply(polygons, extrapolygons);
 
-	 // streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
-		//  for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
-	 // 	 // for (var i = 1; i < 2; i++){
-		// 	 let node1id = intersections_by_wayId[str][i];
-		// 	 let node2id = intersections_by_wayId[str][i+1];
-		// 	 console.log("node1: ", node1id, ", node2: ", node2id);
-		// 	 let node1 = GetElementsByAttribute(result, "node", "id", node1id)[0];
-		// 	 let node2 = GetElementsByAttribute(result, "node", "id", node2id)[0];
-		// 	 // let sides1 = getPerpendiculars([parseFloat(node1.getAttribute("lat")), parseFloat(node1.getAttribute("lon"))],[parseFloat(node2.getAttribute("lat")), parseFloat(node2.getAttribute("lon"))]);
-		// 	 let sides = getPerpendiculars([parseFloat(node1.getAttribute("lat")), parseFloat(node1.getAttribute("lon"))],[parseFloat(node2.getAttribute("lat")), parseFloat(node2.getAttribute("lon"))]);
-		// 	 // sides = sides.map( (num) => [parseFloat(num[0].toPrecision(8)),parseFloat(num[1].toPrecision(8))]);
-		// 	 console.log("sides: ", sides);
-		// 	 // addCoordsToMarkers(sides, labelByCoords);
-		// 	 var poly = new StreetPolygon(sides, wayNames_by_Id[str], str);
-		// 	 polygons.push(poly);
-		//  }
-	 // });
+	 // addNodesToMarkers(Object.keys(neighbors),labelNode);
 
-// 	 var poly = new StreetPolygon([currlat,currlon,currlat+0.001,currlon+0.001], 123, 123);
-// 	 console.log(poly);
-// 	 	 polygons.push(poly);
-// console.log(polygons);
-	 // console.log(neighbors);
-
+	 // Object.keys(neighbors).map( (key) => {
+		//  neighbors[key].forEach((item, i) => {
+		// 	 		if (item[0]) {
+		// 				 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
+		// 	  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
+		// 			 }
+		// 			 if (item[1] && item[1].length>0){
+		// 				 var ll3 = new L.LatLng(item[1][0], item[1][1]);
+		// 	  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
+		// 			 }
 	 //
-	 Object.keys(neighbors).map( (key) => {
-		 neighbors[key].forEach((item, i) => {
-			 		if (item[0]) {
-						 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
-			  		 // markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
-					 }
-					 if (item[1]){
-						 var ll3 = new L.LatLng(item[1][0], item[1][1]);
-			  		 // markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
-					 }
+		//  });
+	 //
+	 // })
 
-		 });
-
-	 })
 
 	 streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
-		 // for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
-			 for (var i = 0; i < 1; i++){
-		// 		// console.log("intersections: ", intersections_by_wayId[str][i], " and ", intersections_by_wayId[str][i+1]);
-		// 	 // var c1 = neighbors[bylats[str][i]].map( (corner) => corner[1]);
-			 var c1 = neighbors[intersections_by_wayId[str][i]].map( (corner) => corner[1]);
-		// 	 console.log(c1);
-		// 	 // var c2 = neighbors[bylats[str][i+1]].map( (corner) => corner[1]);
-			 var c2 = neighbors[intersections_by_wayId[str][i+1]].map( (corner) => corner[1]);
-		// 	 console.log(c2);
-		// 	 //TEST:
-		// 	 if (c1.length < 2){
-		// 		 console.log(str + "," + intersections_by_wayId[str][i] + ": only 1 neighbor in c1");
-		// 	 }
-		// 	 if (c2.length < 2){
-		// 		 console.log(str + "," + intersections_by_wayId[str][i+1] + ": only 1 neighbor in c2");
-		// 	 }
-	 //
-	 //
-			 var test = c1.concat(c2);
-		// 	 // console.log("four corners: ", test);
-		// 	 // test.sort( (a, b) => {return a[0] - b[0];});
-		// 	 // console.log("test sorted: ", test);
-			 var poly = new StreetPolygon(test, wayNames_by_Id[str], str)
-			 // polygons.push(poly);
+		 for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
+
+			 //TODO when are these empty and what to do about it
+			 if (neighbors[intersections_by_wayId[str][i]] && neighbors[intersections_by_wayId[str][i+1]]){
+				 var c1 = neighbors[intersections_by_wayId[str][i]].map( (corner) => corner[1]);
+				 var c2 = neighbors[intersections_by_wayId[str][i+1]].map( (corner) => corner[1]);
+				 var test = c1.concat(c2);
+				 //TODO better filter?
+				 test = test.filter( (x) => !!x && x.length>0)
+				 if (test.length > 2){
+					 var poly = new StreetPolygon(test, wayNames_by_Id[str], str)
+					 polygons.push(poly);
+				 }
+			 }
 		 }
 	 })
-
-	 // for (var i = 0; i < intersections_by_wayId[testid].length-1; i++){
-		//  // for (var i = 0; i < 1; i++){
-		// 	console.log("intersections: ", intersections_by_wayId[testid][i], " and ", intersections_by_wayId[testid][i+1]);
-		//  var c1 = neighbors[intersections_by_wayId[testid][i]].map( (corner) => corner[1]);
-		//  console.log(c1);
-		//  var c2 = neighbors[intersections_by_wayId[testid][i+1]].map( (corner) => corner[1]);
-		//  console.log(c2);
-		//  //TEST:
-		//  var test = c1.concat(c2);
-		//  console.log("four corners: ", test);
-		//  test.sort( (a, b) => {return a[0] - b[0];});
-		//  console.log("test sorted: ", test);
-		//  var poly = new StreetPolygon(test, wayNames_by_Id[testid], testid)
-		//  polygons.push(poly);
-	 // }
 	 console.log(polygons);
 
 	 function test() {
