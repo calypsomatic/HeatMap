@@ -19,81 +19,126 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
 
 	var result = new window.DOMParser().parseFromString(str, "text/xml");
 
-	var streetrelationids = getElementsValueByXPath('//relation/tag[@k="type" and @v="street"]/../@id', result);
+	var ways_by_refNodeId = {}
+	var nodes_by_wayId = {}
+	var ways_by_Name = {}
+	var wayNames_by_Id = {}
+	var intersections_by_wayId = {}
+	var allNodesInRelation = {}
 
-
-  var relationmemberids = {}
-  streetrelationids.forEach((item, i) => {
-     var waymembers = getElementsValueByXPath('//relation[@id="'+item+'"]/member/@ref', result);
-     relationmemberids[item] = waymembers;
-  });
-
-  var ways_by_refNodeId = {}
-  var nodes_by_wayId = {}
-  var ways_by_Name = {}
-  var wayNames_by_Id = {}
-  var intersections_by_wayId = {}
-  var allNodesInRelation = {}
-
-  let removeDuplicates = arr => arr.filter((item, index) => arr.indexOf(item) === index);
+	let removeDuplicates = arr => arr.filter((item, index) => arr.indexOf(item) === index);
 
 //This is an attempt to keep the correct order of nodes in streets
-  function merge(arr1, arr2){
-    let bigger = arr1.length > arr2.length ? arr1 : arr2;
-    let smaller = arr1.length > arr2.length ? arr2 : arr1;
-    let insertindex = 0;
-    smaller.forEach((item,i) => {
-      if (bigger.includes(item)){
-        insertindex = bigger.indexOf(item)+1;
-      } else {
-        bigger.splice(insertindex,0,item);
-        insertindex++;
-      }
-    });
-    return bigger;
-  }
+	function merge(arr1, arr2){
+		let bigger = arr1.length > arr2.length ? arr1 : arr2;
+		let smaller = arr1.length > arr2.length ? arr2 : arr1;
+		let insertindex = 0;
+		smaller.forEach((item,i) => {
+			if (bigger.includes(item)){
+				insertindex = bigger.indexOf(item)+1;
+			} else {
+				bigger.splice(insertindex,0,item);
+				insertindex++;
+			}
+		});
+		return bigger;
+	}
 
+	////////////////////TEST - NO RELATIONS//////////////////////////
+	let wayids = getElementsValueByXPath('//way/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../@id', result);
 
-  var usekey = null;
+	var usekey = null;
   //TODO These two different keys are a real mess, deal with them some day
-  for (const [key, value] of Object.entries(relationmemberids)) {
-    var allnodes = []
+  wayids.forEach((item, i) => {
     var nodegroups = {}
-    value.forEach((item, i) => {
-      var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
-      var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
-      if (maybename.length > 0){
-        if (!wayNames_by_Id[key]){
-          wayNames_by_Id[key] = maybename[0];
-        } else if (wayNames_by_Id[key] != maybename[0]){
-         //  if (debug){
-         //   console.log("Found two different names: " + wayNames_by_Id[key] + " and " + maybename[0])
-         // }
-        }
-        if (!ways_by_Name[maybename[0]]){
-          ways_by_Name[maybename[0]] = [key];
-        } else if (!ways_by_Name[maybename[0]].includes(key)){
-         //  if (debug){
-         //   console.log("Found two different keys for " + maybename[0]);
-         // }
-          ways_by_Name[maybename[0]].push(key);
-          usekey = ways_by_Name[maybename[0]][0];
-        }
+    var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
+    var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
+    if (maybename.length > 0){
+      if (!wayNames_by_Id[item]){
+        wayNames_by_Id[item] = maybename[0];
+      } else if (wayNames_by_Id[item] != maybename[0]){
+        if (debug){
+         console.log("Found two different names: " + wayNames_by_Id[item] + " and " + maybename[0])
+       }
       }
-      allnodes = merge(allnodes,refnodes);
-      // allnodes = allnodes.concat(refnodes);
-      // allnodes = removeDuplicates(allnodes);
-    });
-    //EXPERIMENT
-    if (allNodesInRelation[usekey]){
-      // console.log(usekey + " already exists");
-      allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(allnodes);
-      usekey = null;
-    } else {
-      allNodesInRelation[key] = allnodes;
+      if (!ways_by_Name[maybename[0]]){
+        ways_by_Name[maybename[0]] = [item];
+      } else if (!ways_by_Name[maybename[0]].includes(item)){
+       //  if (debug){
+       //   console.log("Found two different keys for " + maybename[0]);
+       // }
+        ways_by_Name[maybename[0]].push(item);
+        usekey = ways_by_Name[maybename[0]][0];
+      }
     }
-    // allNodesInRelation[key] = allnodes;
+  //EXPERIMENT
+  if (allNodesInRelation[usekey]){
+    // console.log(usekey + " already exists");
+    // allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(refnodes);
+		allNodesInRelation[usekey] = merge(allNodesInRelation[usekey],refnodes);
+    usekey = null;
+  } else {
+    allNodesInRelation[item] = refnodes;
   }
+  // allNodesInRelation[key] = allnodes;
+});
+
+
+	////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////
+	// var streetrelationids = getElementsValueByXPath('//relation/tag[@k="type" and @v="street"]/../@id', result);
+	//
+	//
+  // var relationmemberids = {}
+  // streetrelationids.forEach((item, i) => {
+  //    var waymembers = getElementsValueByXPath('//relation[@id="'+item+'"]/member/@ref', result);
+  //    relationmemberids[item] = waymembers;
+  // });
+	//
+  // var usekey = null;
+  // //TODO These two different keys are a real mess, deal with them some day
+  // for (const [key, value] of Object.entries(relationmemberids)) {
+  //   var allnodes = []
+  //   var nodegroups = {}
+  //   value.forEach((item, i) => {
+  //     var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
+  //     var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
+  //     if (maybename.length > 0){
+  //       if (!wayNames_by_Id[key]){
+  //         wayNames_by_Id[key] = maybename[0];
+  //       } else if (wayNames_by_Id[key] != maybename[0]){
+  //        //  if (debug){
+  //        //   console.log("Found two different names: " + wayNames_by_Id[key] + " and " + maybename[0])
+  //        // }
+  //       }
+  //       if (!ways_by_Name[maybename[0]]){
+  //         ways_by_Name[maybename[0]] = [key];
+  //       } else if (!ways_by_Name[maybename[0]].includes(key)){
+  //        //  if (debug){
+  //        //   console.log("Found two different keys for " + maybename[0]);
+  //        // }
+  //         ways_by_Name[maybename[0]].push(key);
+  //         usekey = ways_by_Name[maybename[0]][0];
+  //       }
+  //     }
+  //     allnodes = merge(allnodes,refnodes);
+  //     // allnodes = allnodes.concat(refnodes);
+  //     // allnodes = removeDuplicates(allnodes);
+  //   });
+  //   //EXPERIMENT
+  //   if (allNodesInRelation[usekey]){
+  //     // console.log(usekey + " already exists");
+  //     allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(allnodes);
+  //     usekey = null;
+  //   } else {
+  //     allNodesInRelation[key] = allnodes;
+  //   }
+  //   // allNodesInRelation[key] = allnodes;
+  // }
+
+	///////////////////////////////
 
   for (const [key, value] of Object.entries(allNodesInRelation)) {
     value.forEach((child, i) => {
@@ -316,6 +361,7 @@ function sortIntoIds(coordlist){
 
   return { ways_by_refNodeId: ways_by_refNodeId, nodes_by_wayId: nodes_by_wayId, ways_by_Name: ways_by_Name,
     wayNames_by_Id:wayNames_by_Id, intersections_by_wayId: intersections_by_wayId, allNodesInRelation: allNodesInRelation,
-  allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId, streetrelationids: streetrelationids}
+  allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId}
+	// allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId, streetrelationids: streetrelationids}
 
 }

@@ -60,7 +60,7 @@ export function findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersec
 	 	 }
 
 	 function merge(arr1, arr2){
-     let bigger = arr1.length > arr2.length ? arr1 : arr2;
+     let bigger = arr1.length > arr2.length ? arr1 : arr2;getAllNeighborsForWay
      let smaller = arr1.length > arr2.length ? arr2 : arr1;
      let insertindex = 0;
      smaller.forEach((item,i) => {
@@ -73,6 +73,64 @@ export function findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersec
      });
      return bigger;
    }
+
+	 export function getAllNeighborsForWay(result, intersections_by_nodeId, wayid, way_intersections, nodes_by_wayId){
+		 let neighbors = {}
+		 neighbors[way_intersections[0]] = findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, intersections_by_nodeId, way_intersections[0], wayid);
+		 for (let i = 1; i < way_intersections.length; i++){
+			 let perps = getBothPerpendiculars(nodeIdToCoords(result, way_intersections[i-1]), nodeIdToCoords(result, way_intersections[i]));
+			 neighbors[way_intersections[i]] = [[null,perps[0]],[null,perps[1]]];
+		 }
+		 //neighbors[intersections_by_nodeId[wayid][intersections_by_nodeId[wayid].length-1]] = findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, intersections_by_nodeId, intersections_by_nodeId[wayid][intersections_by_nodeId[wayid].length-1], wayid);
+		 console.log(neighbors);
+		 return neighbors;
+	 }
+
+	 export function findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, intersections_by_nodeId, nodeid, wayid){
+		 let otherStreets = intersections_by_nodeId[nodeid].filter(way => way != wayid);
+		 //this is probably a really dumb idea
+		 let streetNodes = nodes_by_wayId[otherStreets[0]]
+		 if (otherStreets.length > 1){
+		 	for (let i = 1; i < otherStreets.length; i++){
+		 		let moreNodes = nodes_by_wayId[otherStreets[i]]
+		 		streetNodes = merge(streetNodes,moreNodes);
+		 	}
+		 }
+
+		 //TODO What to do here
+		 if (streetNodes.length < 2){
+		 	return [[null,[]],[null,[]]]
+		 }
+
+		 var idx = streetNodes.indexOf(nodeid);
+		 let resp = [];
+		 let anyNode = GetElementsByAttribute(result, "node", "id", nodeid)[0];
+		 if (idx > 0){
+		 	var forNode = GetElementsByAttribute(result, "node", "id", streetNodes[idx-1])[0];
+//		 	var formp = [(parseFloat(anyNode.getAttribute("lat")) + parseFloat(forNode.getAttribute("lat")))/2.0, (parseFloat(anyNode.getAttribute("lon")) + parseFloat(forNode.getAttribute("lon")))/2.0]
+			var formp = extendMidpoint(nodeToCoords(anyNode), nodeToCoords(forNode), 0);
+		 	resp.push([forNode,formp])
+		 } else {
+		 	resp.push(null)
+		 }
+		 if (idx < streetNodes.length - 1){
+		 	var backNode = GetElementsByAttribute(result, "node", "id", streetNodes[idx+1])[0];
+//		 	var backmp = [(parseFloat(anyNode.getAttribute("lat")) + parseFloat(backNode.getAttribute("lat")))/2.0, (parseFloat(anyNode.getAttribute("lon")) + parseFloat(backNode.getAttribute("lon")))/2.0]
+			var backmp = extendMidpoint(nodeToCoords(anyNode), nodeToCoords(backNode), 0);
+		 	resp.push([backNode,backmp]);
+		 } else {
+		 			resp.push([null,extendMidpoint(
+		 					[parseFloat(anyNode.getAttribute("lat")), parseFloat(anyNode.getAttribute("lon"))],
+		 					formp)])
+		 }
+		 if (!resp[0]){
+		 	resp[0] = [null,extendMidpoint(
+		 			[parseFloat(anyNode.getAttribute("lat")), parseFloat(anyNode.getAttribute("lon"))],
+		 			backmp)]
+		 }
+		 return resp;
+
+	 }
 
 	 export function findSideIntersectionsOnOtherStreetWithMidpoints(result, intersections_by_wayId, intersections_by_nodeId, nodeid, wayid)
 		 {
@@ -234,13 +292,32 @@ export function findSideIntersectionsByDistanceWithMidpoints(result, intersectio
 
 
 		 function extendMidpoint(node1, node2){
-			 const dist = Math.sqrt(Math.pow(node1[0]-node2[0],2) + Math.pow(node1[1]-node2[1],2));
+			 //Experiment - a set distance?
+			 const dist = 0.0005;
+
+//			 const dist = Math.sqrt(Math.pow(node1[0]-node2[0],2) + Math.pow(node1[1]-node2[1],2));
 			 const linevector = [node2[0]-node1[0], node2[1]-node1[1]];
 			 const lvsize = Math.sqrt(linevector[0]*linevector[0] + linevector[1]*linevector[1]);
 			 const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
 			 return [node1[0]-dist*lvnormal[0],node1[1]-dist*lvnormal[1]];
 		 }
 
+		 function nodeIdToCoords(result, nodeid){
+			 var node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
+			 return nodeToCoords(node);
+		 }
+
+		 function nodeToCoords(node){
+			 return[parseFloat(node.getAttribute("lat")),parseFloat(node.getAttribute("lon"))];
+		 }
+
+		 function getBothPerpendiculars(node1, node2){
+			 const d = 0.0005; //TODO figure this out
+			 const linevector = [node2[1]-node1[1], node1[0]-node2[0]];
+			 const lvsize = Math.sqrt(linevector[0]*linevector[0] + linevector[1]*linevector[1]);
+			 const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
+			 return [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]], [node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]]];
+		 }
 
 	 	 function getPerpendiculars(node1, node2, side){
 	 //		 console.log("getting perps for ", node1, node2);
