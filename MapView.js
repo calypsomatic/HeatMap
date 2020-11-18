@@ -1,5 +1,5 @@
 import React, { Component, useState } from 'react';
-import { Map, TileLayer, Marker, Popup, Polygon, SVGOverlay, LayerGroup, Circle, FeatureGroup } from 'react-leaflet';
+import { Map, TileLayer, Marker, Popup, Polygon, SVGOverlay, LayerGroup, Circle, FeatureGroup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 // import './App.css';
 import Geolocation from '@react-native-community/geolocation';
@@ -36,21 +36,27 @@ class MapView extends Component {
     Geolocation.getCurrentPosition(position => {
       this.setState({
         currentLocation: { lat: position.coords.latitude, lng: position.coords.longitude }      });
-      findExistingIntersections(this.state.currentLocation)
-        .then(res => {
-          if (debug){
-            console.log(res);
-          }
-          console.log(this.state);
-          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : [])});
-        });
+      // findExistingIntersections(this.state.currentLocation)
+      //   .then(res => {
+      //     if (debug){
+      //       console.log(res);
+      //     }
+      //     console.log(this.state);
+      //     this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons : [])});
+      //   });
         createNewIntersections(this.state.currentLocation)
         .then(res => {
           console.log(res);
-          this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : []),
-          markers: res.markers ? res.markers.concat(this.state.markers) : this.state.markers});
+          this.setState({ markers: res.markers, polygons: res.polygons, lines: res.lines});
           // console.log(this.state.markers);
         });
+
+        // .then(res => {
+        //   console.log(res);
+        //   this.setState({ polygons: res.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => res.polygon.includes(poly)) : []),
+        //   markers: res.markers ? res.markers.concat(this.state.markers) : this.state.markers});
+        //   // console.log(this.state.markers);
+        // });
    });
 
   }
@@ -75,6 +81,14 @@ class MapView extends Component {
     }
   }
 
+  renderLines(){
+    if(this.state.lines){
+      return this.state.lines.map((line, i) => (
+                  <Polyline positions={line} key={i}/>
+              ))
+    }
+  }
+
   render() {
 
     if (!this.state) {
@@ -95,6 +109,9 @@ class MapView extends Component {
         <MultiPolygon polygons={this.state.polygons}/>
         {
           this.renderMarkers()
+        }
+        {
+          this.renderLines()
         }
       </Map>
     );

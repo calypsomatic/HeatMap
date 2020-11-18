@@ -1,12 +1,223 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 import { create, all } from 'mathjs';
 // import {PythonShell} from 'python-shell';
+import StreetPolygon from './StreetPolygon.js';
 
 const config = { }
 const math = create(all, config)
 
 //Not sure if this will want to be changed, or when
-const rad = 0.004;
+const rad = 0.002;
+
+
+
+
+export const test = async(currlat, currlon) => {
+	var osmapi = "https://www.openstreetmap.org/api/0.6/"
+	var osm =		osmapi + "map?bbox="+(currlon-rad)+","+(currlat-rad)+","+(currlon+rad)+","+(currlat+rad)
+
+	//TODO Deal with errors and such
+	var resp = await fetch(osm);
+ 	var str = await resp.text();
+	console.log(str);
+	var result = new window.DOMParser().parseFromString(str, "text/xml");
+
+
+	// var nomin = "https://nominatim.openstreetmap.org/reverse?format=xml&lat=" + currlat + "&lon=" + currlon + "&zoom=16&addressdetails=0&polygon_geojson=1";
+	// var resp2 = await fetch(nomin);
+	// var str2 = await resp2.text();
+	// console.log(str2);
+	// var result2 = new window.DOMParser().parseFromString(str2, "text/xml");
+
+	let markers = []
+	let polygons = []
+	let lines = []
+
+	// var geojson = JSON.parse(getElementsValueByXPath('//result/@geojson', result2));
+	// console.log(geojson);
+	// geojson['coordinates'].forEach((item, i) => {
+	// 	let ll = new L.LatLng(item[1], item[0]);
+	// 	markers.push({position: ll, label: "nominatim: " + item});
+	// });
+	//
+	// var stid = getElementsValueByXPath('//result/@osm_id', result2)
+	// let onewaynodeids = getElementsValueByXPath('//way[@id="'+stid+'"]/nd/@ref', result);
+
+
+	let wayids = getElementsValueByXPath('//way/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../@id', result);
+
+	//
+	// let radius = 0.0001;
+	//
+	// let maxlon = -4000;
+	// let maxlat = -4000;
+	// let minlon = 4000;
+	// let minlat = 4000;
+	//
+	// let nodepoints = []
+	//
+
+
+	function getPerpendiculars(node1, node2, side){
+		 // const d = 0.000075; //TODO figure this out
+		 const d = 0.00008; //TODO figure this out
+		 const linevector = [node2[1]-node1[1], node1[0]-node2[0]];
+		 const lvsize = Math.sqrt(linevector[0]*linevector[0] + linevector[1]*linevector[1]);
+		 const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
+		 // let coord = side == 0 ? [node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]] : [node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]]
+		 let coords = [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]], [node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]]];
+		 return coords;
+	 }
+
+	 function getPerpendicularsNearAndFar(node1, node2, side){
+ 		 // const d = 0.000075; //TODO figure this out
+ 		 const d1 = 0.00008; //TODO figure this out
+		 const d2 = 0.0002;
+ 		 const linevector = [node2[1]-node1[1], node1[0]-node2[0]];
+ 		 const lvsize = Math.sqrt(linevector[0]*linevector[0] + linevector[1]*linevector[1]);
+ 		 const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
+ 		 // let coord = side == 0 ? [node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]] : [node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]]
+ 		 let coords = [[node1[0]+d1*lvnormal[0],node1[1]+d1*lvnormal[1]], [node1[0]-d1*lvnormal[0],node1[1]-d1*lvnormal[1]]];
+		 let far = [[node1[0]+d2*lvnormal[0],node1[1]+d2*lvnormal[1]], [node1[0]-d2*lvnormal[0],node1[1]-d2*lvnormal[1]]];
+ 		 return [coords,far];
+ 	 }
+
+	 function getCoordArrayFromNodeId(nodeid){
+		 return [parseFloat(getElementsValueByXPath('//node[@id="'+nodeid+'"]/@lat', result)[0]), parseFloat(getElementsValueByXPath('//node[@id="'+nodeid+'"]/@lon', result)[0])];
+	 }
+
+
+
+
+	 wayids.forEach((item, i) => {
+		 let nodes = getElementsValueByXPath('//way[@id="'+item+'"]/nd/@ref', result);
+		 console.log( getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result));
+		 console.log(nodes);
+
+		 let node = getCoordArrayFromNodeId(nodes[0]);
+		 // let ll1 = new L.LatLng(node[0], node[1]);
+		 // markers.push({position: ll1, label: "node: " + nodes[0]});
+
+		 var lastcorners;
+		 for (var i = 1; i < nodes.length; i++){
+			 let nextnode = getCoordArrayFromNodeId(nodes[i]);;
+			 // lines.push([node, nextnode]);
+	 		 // let ll = new L.LatLng(nextnode[0], nextnode[1]);
+			 // markers.push({position: ll, label: "node: " + nodes[i]});
+			 // let coords = getPerpendiculars(node, nextnode);
+			 let coordtest = getPerpendicularsNearAndFar(node, nextnode);
+			 let coords = coordtest[0];
+			 // let far = {maxlat: Math.max(coordtest[1][0][0], coordtest[1][1][0]),
+				//  			minlat: Math.min(coordtest[1][0][0], coordtest[1][1][0]),
+				// 		 maxlon: Math.max(coordtest[1][0][1], coordtest[1][1][1]),
+				//  	 	minlon: Math.min(coordtest[1][0][1], coordtest[1][1][1])};
+			 // let nearnodes = getElementsValueByXPath('//node[@lat > '+far.minlat+' and @lat < ' + far.maxlat +' and @lon > '+far.minlon+' and @lon < '+far.maxlon+']/@id', result);
+			 // // let nearnodes = getElementsValueByXPath('//node[@lat > '+far.minlat+']/@id', result);
+			 // nearnodes.forEach((n, j) => {
+				//  let nn = getCoordArrayFromNodeId(n);
+ 	 		 // let ll1 = new L.LatLng(nn[0], nn[1]);
+ 	 		 // markers.push({position: ll1, label: "node: " + n});
+			 // });
+
+			 if (lastcorners){
+				 let corners = coords.slice();
+	 			 let poly = new StreetPolygon(corners.concat(lastcorners), 1234, 1234)
+		 		 polygons.push(poly);
+			 }
+			 lastcorners = coords.slice();
+			 // ll = new L.LatLng(coords[0][0], coords[0][1]);
+			 // markers.push({position: ll, label: "perp for " + nodes[i]});
+			 // ll = new L.LatLng(coords[1][0], coords[1][1]);
+			 // markers.push({position: ll, label: "perp for " + nodes[i]});
+			 // lines.push(coords);
+			 node = nextnode;
+		 }
+	 });
+
+	 var scale = 0.0001;
+
+	 //Get nodes near polygons
+	 polygons.forEach((item, i) => {
+
+	 });
+
+
+ 	// for (var i = -rad; i < rad; i += scale){
+ 	// 	for (var j = -rad; j < rad; j += scale){
+ 	// 		let corners = [[currlat+i, currlon+j],[currlat+i+scale,currlon+j],[currlat+i+scale,currlon+j+scale],[currlat+i,currlon+j+scale]]
+ 	// 		let poly = new StreetPolygon(corners, 1234, 1234)
+ 	//  		polygons.push(poly);
+ 	// 	}
+ 	// }
+
+
+	// console.log(wayids);
+	// wayids.forEach((way, i) => {
+	// 	let nodes = getElementsValueByXPath('//way[@id="'+way+'"]/nd/@ref', result);
+	// 	let pos = []
+	// 	nodes.forEach((nodeid, j) => {
+	// 		let node = GetElementsByAttribute(result, "node", "id", nodeid)[0]
+	// 		let nodelat = getElementsValueByXPath('//node[@id="'+nodeid+'"]/@lat', result)[0];
+	// 		let nodelon = getElementsValueByXPath('//node[@id="'+nodeid+'"]/@lon', result)[0];
+	// 		// let ll = new L.LatLng(nodelat, nodelon);
+	// 		pos.push([nodelat,nodelon]);
+	// 	});
+	// 	lines.push(pos);
+	// });
+	// console.log(lines)
+
+
+	// onewaynodeids.forEach((item, i) => {
+	// 		let node = GetElementsByAttribute(result, "node", "id", item)[0]
+	// 		let nodelat = parseFloat(node.getAttribute("lat"));
+	// 		let nodelon = parseFloat(node.getAttribute("lon"));
+	// 		// if (nodelat > maxlat){
+	// 		// 	maxlat = nodelat;
+	// 		// } else if (nodelat < minlat){
+	// 		// 	minlat = nodelat;
+	// 		// }
+	// 		// if (nodelon > maxlon){
+	// 		// 	maxlon = nodelon;
+	// 		// } else if (nodelon < minlon){
+	// 		// 	minlon = nodelon;
+	// 		// }
+	// 		// nodepoints.append([nodelat, nodelon]);
+	// 		let ll = new L.LatLng(nodelat, nodelon);
+	// 		console.log(nodelat, nodelon)
+	// 		markers.push({position: ll, label: "osm: " + item});
+	// 		// let corners = [[nodelat + radius, nodelon + radius], [nodelat + radius, nodelon - radius], [nodelat - radius, nodelon - radius], [nodelat - radius, nodelon + radius]]
+	// 		// console.log(corners)
+	// 		// var poly = new StreetPolygon(corners, 1234, 1234)
+	// 		// polygons.push(poly);
+	//
+	// 	});
+
+
+
+
+	// var allwaysinrelations = getElementsValueByXPath('//relation/member/@ref', result);
+	// var allnodeids = getElementsValueByXPath('//node/@id', result);
+	// var allnodesinway = allwaysinrelations.reduce((acc, nodes) => acc.concat(getElementsValueByXPath('//way[@id="'+nodes+'"]/nd/@ref', result)),[]);
+
+
+	// console.log("allwaysinrelations: ");
+	// console.log(allwaysinrelations);
+	// console.log("allnodesinway: ");
+	// console.log(allnodesinway);
+	// console.log("allnodeids: ");
+	// console.log(allnodeids);
+
+	// let nodesnotinways = allnodeids.filter(x => !allnodesinway.includes(x));
+
+	// allnodesinway.forEach((item, i) => {
+	// 		let node = GetElementsByAttribute(result, "node", "id", item)[0]
+	// 		let ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
+	// 		markers.push({position: ll, label: item});
+	// 	});
+
+	return  {markers: markers, polygons: polygons, lines: lines};
+
+}
 
 export const getAndProcessStreetData = async (currlat, currlon) => {
 
@@ -19,14 +230,17 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
 
 	var result = new window.DOMParser().parseFromString(str, "text/xml");
 
-	var streetrelationids = getElementsValueByXPath('//relation/tag[@k="type" and @v="street"]/../@id', result);
+	// var streetrelationids = getElementsValueByXPath('//relation/tag[@k="type" and (@v="street" or @v="route")]/../@id', result);
+	// var streetrelationids = getElementsValueByXPath('//relation/tag[@k="type" and @v="street"]/../@id', result);
 
 
-  var relationmemberids = {}
-  streetrelationids.forEach((item, i) => {
-     var waymembers = getElementsValueByXPath('//relation[@id="'+item+'"]/member/@ref', result);
-     relationmemberids[item] = waymembers;
-  });
+	let wayids = getElementsValueByXPath('//way/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../@id', result);
+
+  // var relationmemberids = {}
+  // streetrelationids.forEach((item, i) => {
+  //    var waymembers = getElementsValueByXPath('//relation[@id="'+item+'"]/member/@ref', result);
+  //    relationmemberids[item] = waymembers;
+  // });
 
   var ways_by_refNodeId = {}
   var nodes_by_wayId = {}
@@ -53,47 +267,94 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
     return bigger;
   }
 
-
-  var usekey = null;
-  //TODO These two different keys are a real mess, deal with them some day
-  for (const [key, value] of Object.entries(relationmemberids)) {
+let usekey = null;
+////A new way that might not work
+	wayids.forEach((item, i) => {
     var allnodes = []
     var nodegroups = {}
-    value.forEach((item, i) => {
-      var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
-      var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
-      if (maybename.length > 0){
-        if (!wayNames_by_Id[key]){
-          wayNames_by_Id[key] = maybename[0];
-        } else if (wayNames_by_Id[key] != maybename[0]){
-         //  if (debug){
-         //   console.log("Found two different names: " + wayNames_by_Id[key] + " and " + maybename[0])
-         // }
-        }
-        if (!ways_by_Name[maybename[0]]){
-          ways_by_Name[maybename[0]] = [key];
-        } else if (!ways_by_Name[maybename[0]].includes(key)){
-         //  if (debug){
-         //   console.log("Found two different keys for " + maybename[0]);
-         // }
-          ways_by_Name[maybename[0]].push(key);
-          usekey = ways_by_Name[maybename[0]][0];
-        }
+    var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
+    var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
+    if (maybename.length > 0){
+      // if (!wayNames_by_Id[item]){
+        wayNames_by_Id[item] = maybename[0];
+      // } else if (wayNames_by_Id[item] != maybename[0]){
+      //  //  if (debug){
+      //  //   console.log("Found two different names: " + wayNames_by_Id[key] + " and " + maybename[0])
+      //  // }
+      // }
+      if (!ways_by_Name[maybename[0]]){
+        ways_by_Name[maybename[0]] = [item];
+      } else if (!ways_by_Name[maybename[0]].includes(item)){
+       //  if (debug){
+       //   console.log("Found two different keys for " + maybename[0]);
+       // }
+        ways_by_Name[maybename[0]].push(item);
+        // usekey = ways_by_Name[maybename[0]][0];
       }
-      allnodes = merge(allnodes,refnodes);
-      // allnodes = allnodes.concat(refnodes);
-      // allnodes = removeDuplicates(allnodes);
-    });
-    //EXPERIMENT
-    if (allNodesInRelation[usekey]){
-      // console.log(usekey + " already exists");
-      allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(allnodes);
-      usekey = null;
-    } else {
-      allNodesInRelation[key] = allnodes;
     }
+    // allnodes = merge(allnodes,refnodes);
+    // allnodes = allnodes.concat(refnodes);
+    // allnodes = removeDuplicates(allnodes);
+		allNodesInRelation[item] = refnodes;
+  //EXPERIMENT
+	ways_by_Name[maybename[0]].forEach((wayid, j) => {
+		allnodes = merge(allnodes, allNodesInRelation[wayid]);
+	});
+	ways_by_Name[maybename[0]].forEach((wayid, j) => {
+		allNodesInRelation[wayid] = allnodes;
+	});
+  // if (allNodesInRelation[usekey]){
+  //   // console.log(usekey + " already exists");
+  //   allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(allnodes);
+  //   usekey = null;
+  // } else {
+  //   allNodesInRelation[item] = allnodes;
+  // }
     // allNodesInRelation[key] = allnodes;
-  }
+	});
+
+
+///////THE original way
+  // var usekey = null;
+  //TODO These two different keys are a real mess, deal with them some day
+  // for (const [key, value] of Object.entries(relationmemberids)) {
+  //   var allnodes = []
+  //   var nodegroups = {}
+  //   value.forEach((item, i) => {
+  //     var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
+  //     var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
+  //     if (maybename.length > 0){
+  //       if (!wayNames_by_Id[key]){
+  //         wayNames_by_Id[key] = maybename[0];
+  //       } else if (wayNames_by_Id[key] != maybename[0]){
+  //        //  if (debug){
+  //        //   console.log("Found two different names: " + wayNames_by_Id[key] + " and " + maybename[0])
+  //        // }
+  //       }
+  //       if (!ways_by_Name[maybename[0]]){
+  //         ways_by_Name[maybename[0]] = [key];
+  //       } else if (!ways_by_Name[maybename[0]].includes(key)){
+  //        //  if (debug){
+  //        //   console.log("Found two different keys for " + maybename[0]);
+  //        // }
+  //         ways_by_Name[maybename[0]].push(key);
+  //         usekey = ways_by_Name[maybename[0]][0];
+  //       }
+  //     }
+  //     allnodes = merge(allnodes,refnodes);
+  //     // allnodes = allnodes.concat(refnodes);
+  //     // allnodes = removeDuplicates(allnodes);
+  //   });
+  //   //EXPERIMENT
+  //   if (allNodesInRelation[usekey]){
+  //     // console.log(usekey + " already exists");
+  //     allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(allnodes);
+  //     usekey = null;
+  //   } else {
+  //     allNodesInRelation[key] = allnodes;
+  //   }
+  //   // allNodesInRelation[key] = allnodes;
+  // }
 
   for (const [key, value] of Object.entries(allNodesInRelation)) {
     value.forEach((child, i) => {
@@ -314,8 +575,26 @@ function sortIntoIds(coordlist){
 
   var allNodes = Object.values(allNodesInRelation).flat();
 
+	// console.log("streetrelationids: ")
+	// console.log(streetrelationids)
+	// console.log("relationmemberids: ")
+	// console.log(relationmemberids)
+	console.log("ways_by_refNodeId: ")
+	console.log(ways_by_refNodeId)
+	console.log("ways_by_Name: ")
+	console.log(ways_by_Name)
+	console.log("intersections_by_wayId: ")
+	console.log(intersections_by_wayId)
+	console.log("allNodesInRelation: ")
+	console.log(allNodesInRelation)
+	console.log("wayNames_by_Id: ")
+	console.log(wayNames_by_Id)
+
   return { ways_by_refNodeId: ways_by_refNodeId, nodes_by_wayId: nodes_by_wayId, ways_by_Name: ways_by_Name,
     wayNames_by_Id:wayNames_by_Id, intersections_by_wayId: intersections_by_wayId, allNodesInRelation: allNodesInRelation,
-  allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId, streetrelationids: streetrelationids}
+  allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId}
+	// return { ways_by_refNodeId: ways_by_refNodeId, nodes_by_wayId: nodes_by_wayId, ways_by_Name: ways_by_Name,
+  //   wayNames_by_Id:wayNames_by_Id, intersections_by_wayId: intersections_by_wayId, allNodesInRelation: allNodesInRelation,
+  // allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId, streetrelationids: streetrelationids}
 
 }

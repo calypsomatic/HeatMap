@@ -2,7 +2,7 @@ import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 import {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds} from './storage.js';
 import StreetPolygon from './StreetPolygon.js';
 import {processVoronoi} from './voronoi-processing.js';
-import {getAndProcessStreetData} from './street-data.js';
+import {test, getAndProcessStreetData} from './street-data.js';
 import {findSideIntersectionsByDistanceWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection, findSideIntersectionsOnOtherStreet, findSideIntersectionsOnOtherStreetWithMidpoints} from './node-processing.js';
 
 const debug = true;
@@ -11,6 +11,18 @@ const polygons = [];
 const rad = 0.004;
 
 export const createNewIntersections = async (location) => {
+
+	const currlat = location.lat;
+	const currlon = location.lng;
+
+	let resp = await test(currlat, currlon);
+
+	return resp;
+
+}
+
+
+export const temprename = async (location) => {
 
 	console.log("createNewIntersections");
 
