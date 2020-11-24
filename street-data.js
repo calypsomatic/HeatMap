@@ -1,6 +1,5 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 import { create, all } from 'mathjs';
-// import {PythonShell} from 'python-shell';
 
 const config = { }
 const math = create(all, config)
@@ -64,23 +63,17 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
       if (!ways_by_Name[maybename[0]]){
         ways_by_Name[maybename[0]] = [item];
       } else if (!ways_by_Name[maybename[0]].includes(item)){
-       //  if (debug){
-       //   console.log("Found two different keys for " + maybename[0]);
-       // }
         ways_by_Name[maybename[0]].push(item);
         usekey = ways_by_Name[maybename[0]][0];
       }
     }
   //EXPERIMENT
   if (allNodesInRelation[usekey]){
-    // console.log(usekey + " already exists");
-    // allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(refnodes);
 		allNodesInRelation[usekey] = merge(allNodesInRelation[usekey],refnodes);
     usekey = null;
   } else {
     allNodesInRelation[item] = refnodes;
   }
-  // allNodesInRelation[key] = allnodes;
 });
 
 
@@ -177,7 +170,6 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
   //We need this to preserve order from nodes_by_wayId
   for (const [key, value] of Object.entries(allNodesInRelation)) {
     var wayixs = value.filter(node => node in intersections_by_nodeId);
-		// console.log(key, wayixs)
 		let coords = wayixs.map( (nodeid) => {
 			let node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
 			return {id: nodeid, coord: {x:parseFloat(node.getAttribute("lat")), y:parseFloat(node.getAttribute("lon"))}};
@@ -187,7 +179,6 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
 		}
 		else {
 			let sorted = sortIntoIds(coords);
-			// console.log(sorted);
 	    intersections_by_wayId[key] = sorted;
 		}
   }
@@ -197,37 +188,19 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
   let intersection_coords = {}
 
   for (const [key, value] of Object.entries(intersections_by_wayId)) {
+		if (value.length < 2){
+			var idx = allNodesInRelation[key].indexOf(value[0]);
+			if (idx == allNodesInRelation[key].length - 1){
+				idx = -1;
+			}
+			value.push(allNodesInRelation[key][idx+1]);
+		}
     let coords = value.map( (nodeid) => {
       let node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
       return {id: nodeid, coord: {x:parseFloat(node.getAttribute("lat")), y:parseFloat(node.getAttribute("lon"))}};
     });
     intersection_coords[key] = coords;
   }
-
-
-// function radians(deg){
-//     return deg * (Math.PI/180);
-//   }
-//
-// // https://stackoverflow.com/questions/16774935/javascript-function-nearest-neighbor
-// function vincenty_sphere(lt1,lt2,lon1,lon2) {
-//
-//   let lat1 = radians(lt1)
-//   let lat2 = radians(lt2)
-//   let delta_lon = radians(lon2-lon1)
-//
-//   let term1 = (Math.cos(lat2) * Math.sin(delta_lon))**2
-//   let term2 = (Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(delta_lon))**2
-//   let numerator = Math.sqrt(term1 + term2)
-//
-//   let denominator = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(delta_lon)
-//
-//   let central_angle = Math.atan2(numerator, denominator)
-//
-//   let radius = 6372.8    // km
-//
-//   return radius * central_angle
-// }
 
 
 function two_farthest(coordlist){
@@ -277,85 +250,6 @@ function sortIntoIds(coordlist){
 	sorted.push(rest[0].id)
 	return sorted;
 }
-
-// let test = Object.values(intersection_coords)[0];
-// console.log("test: ", test);
-// let r = sortIntoIds(test);
-// console.log(r);
-
-//
-//
-// function two_nearest(coord, list){
-//   let lat = coord["coord"][0]
-//   let lon = coord["coord"][1]
-//
-//   let nearest1dist = 40042.0    // km
-//   let nearest1 = null;
-//   let nearest2dist = 40042.1
-//   let nearest2 = null;
-//   for (let i = 0; i < list.length; i++){
-//       let distance = vincenty_sphere(lat, list[i].coord[0], lon, list[i].coord[1])
-//       if(distance < nearest1dist){
-//           nearest2dist = nearest1dist;
-//           nearest2 = nearest1;
-//           nearest1dist = distance;
-//           nearest1 = list[i];
-//         }  else if (distance < nearest2dist){
-//           nearest2dist = distance;
-//           nearest2 = list[i]
-//         }
-//       }
-//
-//   return [nearest1, nearest2];
-// }
-// let nearest_neighbors = {};
-//
-// for (const [key, value] of Object.entries(intersection_coords)) {
-//   //key is wayId, value is list of intersections
-//   let nearest_dict = {};
-//   value.forEach((item, i) => {
-//     let rest = value.slice();
-//     rest.splice(i,i+1);
-//     nearest_dict[item["id"]] = two_nearest(item, rest);
-//   });
-//   nearest_neighbors[key] = nearest_dict
-//   // let test = two_nearest(Object.values(intersection_coords)[0][0], Object.values(intersection_coords)[0].slice(1));
-//
-//
-// }
-// console.log("nearest_neighbors: ", nearest_neighbors);
-
-  //TODO See if I can do this in python
-
-
-	// save code as start.js
-
-
-  // function findNearestNeighbors(coordList){
-  //   let dists = Array(coordList.length).fill().map(() => Array(coordList.length).fill(0));
-  //   let nearest = [];
-  //   coordList.forEach((item, i) => {
-  //     let prev = dists.slice(0,i).map( (a) => a[i])
-  //     let minIndex = prev.indexOf(Math.min(...prev))
-  //     let secondmin = prev.indexOf(Math.min(...Array.from(prev).splice(minIndex,minIndex)))
-  //     for (let j = i+1; j < coordList.length; j++){
-  //           dists[i][j] = Math.sqrt(Math.pow(item[0]-coordList[j][0],2) + Math.pow(item[1]-coordList[j][1],2));
-  //           if (minIndex < 0 || dists[i][j] < dists[i][minIndex]){
-  //             secondmin = minIndex;
-  //             minIndex = j;
-  //           } else if (secondmin < 0 || dists[i][j] < dists[i][secondmin]){
-  //             secondmin = j
-  //           }
-  //       }
-  //       nearest[i] = [minIndex,secondmin];
-  //   });
-  //   console.log(dists);
-  //   console.log(nearest);
-  // }
-  //
-  // findNearestNeighbors(Object.values(intersection_coords)[0]);
-
-
 
   var allNodes = Object.values(allNodesInRelation).flat();
 

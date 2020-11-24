@@ -76,13 +76,20 @@ export function findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersec
 
 	 export function getAllNeighborsForWay(result, intersections_by_nodeId, wayid, way_intersections, nodes_by_wayId){
 		 let neighbors = {}
+		 console.log(way_intersections)
 		 neighbors[way_intersections[0]] = findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, intersections_by_nodeId, way_intersections[0], wayid);
+		 if (way_intersections.length < 2){
+			 var idx = nodes_by_wayId[wayid].indexOf(way_intersections[0]);
+			 if (idx == nodes_by_wayId[wayid].length - 1){
+				 idx = -1;
+			 }
+			 let perp = getBothPerpendiculars(nodeIdToCoords(result, way_intersections[0]), nodeIdToCoords(result, nodes_by_wayId[wayid][idx+1]));
+			 neighbors[nodes_by_wayId[wayid][idx+1]] = [[null,perp[0]],[null,perp[1]]];
+		 }
 		 for (let i = 1; i < way_intersections.length; i++){
-			 let perps = getBothPerpendiculars(nodeIdToCoords(result, way_intersections[i-1]), nodeIdToCoords(result, way_intersections[i]));
+			 let perps = getBothPerpendiculars(nodeIdToCoords(result, way_intersections[i]), nodeIdToCoords(result, way_intersections[i-i]));
 			 neighbors[way_intersections[i]] = [[null,perps[0]],[null,perps[1]]];
 		 }
-		 //neighbors[intersections_by_nodeId[wayid][intersections_by_nodeId[wayid].length-1]] = findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, intersections_by_nodeId, intersections_by_nodeId[wayid][intersections_by_nodeId[wayid].length-1], wayid);
-		 console.log(neighbors);
 		 return neighbors;
 	 }
 
@@ -253,54 +260,37 @@ export function findSideIntersectionsByDistanceWithMidpoints(result, intersectio
 		 let v = [[minIsx1, mp1], [minIsx2, mp2]];
 		 return v;
 	 }
-		 //TODO: instead of this, maybe just extend a line from the existing neighbor halfway to next road?
 
-		 // if (!mp1) {
-			//  allNodes.filter(node => node != isxId).forEach((x, i) => {
-			// 	 var node = GetElementsByAttribute(result, "node", "id", x)[0];
-			// 	 var nodeLat = parseFloat(node.getAttribute("lat"));
-			// 	 var nodeLon = parseFloat(node.getAttribute("lon"));
-		 //
-			// 	 if (Math.sign(isxNodeLat-nodeLat) != latSign && Math.sign(isxNodeLon-nodeLon) != lonSign){
-			// 		 var dist = Math.sqrt(Math.pow(nodeLat-isxNodeLat,2) + Math.pow(nodeLon-isxNodeLon,2));
-			// 		 if (dist < minSide1){
-			// 			 minSide1 = dist;
-			// 			 minIsx1 = node;
-			// 			 latSign = Math.sign(isxNodeLat-nodeLat);
-			// 			 lonSign = Math.sign(isxNodeLon-nodeLon);
-			// 			 mp1 = [(nodeLat + isxNodeLat)/2.0, (nodeLon + isxNodeLon)/2.0]
-			// 		 }
-			// 	 }
-			// })
-		 // }
-		 // if (!mp2) {
-			//  allNodes.filter(node => node != isxId).forEach((x, i) => {
-			// 	 var node = GetElementsByAttribute(result, "node", "id", x)[0];
-			// 	 var nodeLat = parseFloat(node.getAttribute("lat"));
-			// 	 var nodeLon = parseFloat(node.getAttribute("lon"));
-		 //
-			// 	 if (Math.sign(isxNodeLat-nodeLat) != latSign && Math.sign(isxNodeLon-nodeLon) != lonSign){
-			// 		 var dist = Math.sqrt(Math.pow(nodeLat-isxNodeLat,2) + Math.pow(nodeLon-isxNodeLon,2));
-			// 		 if (dist < minSide2){
-			// 			 minSide2 = dist;
-			// 			 minIsx2 = node;
-			// 			 mp2 = [(nodeLat + isxNodeLat)/2.0, (nodeLon + isxNodeLon)/2.0]
-			// 		 }
-			// 	 }
-			// })
-		 // }
-
+		 function getMidPoint(node1, node2){
+			 return calculateMidpoint(node1, node2, 0)
+		 }
 
 		 function extendMidpoint(node1, node2){
-			 //Experiment - a set distance?
-			 const dist = 0.0005;
+			 return calculateMidpoint(node1, node2, 1);
+		 }
 
-//			 const dist = Math.sqrt(Math.pow(node1[0]-node2[0],2) + Math.pow(node1[1]-node2[1],2));
+		 function calculateMidpoint(node1, node2, sign){
+			 const dist = sign == 0 ? 0.0005 : -0.0005;
 			 const linevector = [node2[0]-node1[0], node2[1]-node1[1]];
 			 const lvsize = Math.sqrt(linevector[0]*linevector[0] + linevector[1]*linevector[1]);
 			 const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
-			 return [node1[0]-dist*lvnormal[0],node1[1]-dist*lvnormal[1]];
+			 return [node1[0]+dist*lvnormal[0],node1[1]+dist*lvnormal[1]];
 		 }
+
+// 		 function extendMidpoint(node1, node2){
+// 			 //Experiment - a set distance?
+//
+// 			 const dist = node1[0]<node2[0] && node1[1]<node2[1]? 0.0005 : -0.0005;
+// 			 // const distx = node1[0]<node2[0] ? 0.0005 : -0.0005;
+// 			 // const disty = node1[1]<node2[1]? 0.0005 : -0.0005;
+//
+// //			 const dist = Math.sqrt(Math.pow(node1[0]-node2[0],2) + Math.pow(node1[1]-node2[1],2));
+// 			 const linevector = [node2[0]-node1[0], node2[1]-node1[1]];
+// 			 const lvsize = Math.sqrt(linevector[0]*linevector[0] + linevector[1]*linevector[1]);
+// 			 const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
+// 			 return [node1[0]-dist*lvnormal[0],node1[1]-dist*lvnormal[1]];
+// 			 // return [node1[0]+distx*lvnormal[0],node1[1]+disty*lvnormal[1]];
+// 		 }
 
 		 function nodeIdToCoords(result, nodeid){
 			 var node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
@@ -329,63 +319,4 @@ export function findSideIntersectionsByDistanceWithMidpoints(result, intersectio
 	 			const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
 				let coord = side == 0 ? [node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]] : [node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]]
 	 			return coord;
-				// return [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]],[node2[0]+d*lvnormal[0],node2[1]+d*lvnormal[1]],[node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]],[node2[0]-d*lvnormal[0],node2[1]-d*lvnormal[1]]];
-
-
-
-
-	 			// return [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]],[node1[0]-d*lvnormal[0],node1[1]-d*lvnormal[1]]];
-	 			// return [[node1[0]+d, node1[1]+d], [node1[0]-d, node1[1]-d], [node2[0]+d, node2[1]+d], [node2[0]-d, node2[1]-d]]
-
-	 		 	// const slope = (node2[1] - node1[1])/(node2[0] - node1[0]);
-	 			// const inter = node1[1] - (node1[0]*slope);
-	 			// const perpslope = 1/(slope);
-	 			// const perpinter = node1[1] - (node1[0]/slope);
-	 			// let a = 1;
-	 			// let b = -2*node1[0];
-	 			// let c = node1[0]*node1[0] - (2*d*d*slope/3);
-	 			// let disc = b*b - 4*a*c;
-	 			// if (disc > 0){
-	 			// 	let root1 = (-b + Math.sqrt(disc)) / (2 * a);
-	     	// 	let root2 = (-b - Math.sqrt(disc)) / (2 * a);
-	 			// 	let y = perpslope*root1 + perpinter;
 	 	 }
-
-	 //ASSUMING THERE'S ONLY ONE STREET
-	 		 // function findSideIntersectionsByDistanceWithMidpoints(isxId, wayId){
-	 			//  var isxNode = GetElementsByAttribute(result, "node", "id", isxId)[0];
-	 			//  var streetIx = intersections_by_wayId[wayId].filter(node => node != isxId);
-	 			//  var minSide1 = 100000;
-	 			//  var minIsx1 = null;``
-	 			//  var mp1 = null
-	 			//  var minSide2 = 1000000;
-	 			//  var minIsx2= null;
-	 			//  var mp2 = null;
-	 		 //
-	 			//  var minSign = null;
-	 			//  var isxNodeLat = parseFloat(isxNode.getAttribute("lat"));
-	 			//  var isxNodeLon = parseFloat(isxNode.getAttribute("lon"));
-	 		 //
-	 			//  streetIx.forEach((x, i) => {
-	 			// 	 var node = GetElementsByAttribute(result, "node", "id", x)[0];
-	 		 //
-	 			// 	 // var dist = new Decimal(node.getAttribute("lat")-isxNode.getAttribute("lat")).toPower(2).plus(new Decimal(node.getAttribute("lon")-isxNode.getAttribute("lon")).toPower(2)).sqrt();
-	 			// 	 var nodeLat = parseFloat(node.getAttribute("lat"));
-	 			// 	 var nodeLon = parseFloat(node.getAttribute("lon"));
-	 			// 	 var dist = Math.sqrt(Math.pow(nodeLat-isxNodeLat,2) + Math.pow(nodeLon-isxNodeLon,2));
-	 			// 	 if ((!minIsx1 || (Math.sign(isxNodeLat-nodeLat) == minSign)) && dist < minSide1){
-	 			// 		 minSide1 = dist;
-	 			// 		 minIsx1 = node;
-	 			// 		 minSign = Math.sign(isxNodeLat-nodeLat);
-	 			// 		 mp1 = [(nodeLat + isxNodeLat)/2.0, (nodeLon + isxNodeLon)/2.0]
-	 			// 		 // mp1 = [new Decimal(node.getAttribute("lat")).plus(new Decimal(isxNode.getAttribute("lat"))).dividedBy(2).toNumber(), new Decimal(node.getAttribute("lon")).plus(new Decimal(isxNode.getAttribute("lon"))).dividedBy(2).toNumber()]
-	 			// 	 }
-	 			// 	 else if ((!minIsx2 || (Math.sign(isxNodeLat-nodeLat) == minSign)) && dist < minSide2){
-	 			// 		 minSide2 = dist;
-	 			// 		 minIsx2 = node;
-	 			// 		 // mp2 = [new Decimal(node.getAttribute("lat")).plus(new Decimal(isxNode.getAttribute("lat"))).dividedBy(2).toNumber(), new Decimal(node.getAttribute("lon")).plus(new Decimal(isxNode.getAttribute("lon"))).dividedBy(2).toNumber()]
-	 			// 		 mp2 = [(nodeLat + isxNodeLat)/2.0, (nodeLon + isxNodeLon)/2.0]
-	 			// 	 }
-	 			//  });
-	 			//  return [[minIsx1, mp1], [minIsx2, mp2]]
-	 		 // }

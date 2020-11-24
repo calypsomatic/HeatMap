@@ -3,7 +3,7 @@ import {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreet
 import StreetPolygon from './StreetPolygon.js';
 import {processVoronoi} from './voronoi-processing.js';
 import {getAndProcessStreetData} from './street-data.js';
-import {getAllNeighborsForWay, findSideNodesOnOtherStreetWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection, findSideIntersectionsOnOtherStreet, findSideIntersectionsOnOtherStreetWithMidpoints} from './node-processing.js';
+import {getAllNeighborsForWay, findSideNodesOnOtherStreetWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection} from './node-processing.js';
 
 const debug = true;
 const markers = [];
@@ -76,31 +76,9 @@ export const createNewIntersections = async (location) => {
 		return i + ": " + nd.getAttribute("id") + ": " + nd.getAttribute("lat") + "," + nd.getAttribute("lon");
 	}
 
-	// let massnodes = intersections_by_wayId[11562328];
-	// let collegenodes = intersections_by_wayId[11570474];
-	// let hollandnodes = intersections_by_wayId[11592194];
-	// addNodesToMarkers(massnodes, labelNodeInOrder)
-	// addNodesToMarkers(collegenodes, labelNodeInOrder)
-	// addNodesToMarkers(hollandnodes, labelNodeInOrder)
-
-
-
-
-	// addNodesToMarkers(dovernodes, labelNode);
-	// let daynodes = allNodesInRelation[ways_by_Name["Day Street"]];
-	// 	addNodesToMarkers(daynodes, labelNode);
-	// // console.log(intersections_by_nodeId[5274407769]);
-	// console.log(intersections_by_nodeId[71930313]);
-	// console.log(ways_by_refNodeId[5274407769]);
-	// console.log(ways_by_refNodeId[71930313]);
-	// console.log(wayNames_by_Id[11553284])
-
-
-
-
 	let neighbors = {};
-	const numtoteststart = 3;
-	const numtotestend = 4;
+	const numtoteststart = 0;
+	const numtotestend = 2;
 
  function getNeighborsForWay(nodeid, wayid) {
 	 const ways = ways_by_refNodeId[nodeid].filter(node => node != nodeid);
@@ -122,14 +100,11 @@ export const createNewIntersections = async (location) => {
 } else {
 	Object.keys(intersections_by_wayId).slice(numtoteststart, numtotestend).forEach((way, i) => {
 		let newneighbors = getAllNeighborsForWay(result, intersections_by_nodeId, way, intersections_by_wayId[way], allNodesInRelation);
-		console.log(newneighbors);
 		neighbors = {...neighbors, ...newneighbors};
-		console.log(neighbors);
 		// intersections_by_wayId[way].forEach((item, j) => {
 		// 	 getNeighborsForWay(item, way);
 		// });
 	});
-
 }
 
 // 	streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
@@ -173,22 +148,22 @@ export const createNewIntersections = async (location) => {
 	 // let extrapolygons = processVoronoi(result, streetrelationids, intersections_by_wayId);
 	 // Array.prototype.push.apply(polygons, extrapolygons);
 
-	 // addNodesToMarkers(Object.keys(neighbors),labelNode);
+	 addNodesToMarkers(Object.keys(neighbors),labelNode);
 
-	 // Object.keys(neighbors).map( (key) => {
-		//  neighbors[key].forEach((item, i) => {
-		// 	 		if (item[0]) {
-		// 				 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
-		// 	  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
-		// 			 }
-		// 			 if (item[1] && item[1].length>0){
-		// 				 var ll3 = new L.LatLng(item[1][0], item[1][1]);
-		// 	  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
-		// 			 }
-	 //
-		//  });
-	 //
-	 // })
+	 Object.keys(neighbors).map( (key) => {
+		 neighbors[key].forEach((item, i) => {
+			 		if (item[0]) {
+						 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
+			  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
+					 }
+					 if (item[1] && item[1].length>0){
+						 var ll3 = new L.LatLng(item[1][0], item[1][1]);
+			  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
+					 }
+
+		 });
+
+	 })
 
 function createPolygonsForWay(wayid){
 	for (var i = 0; i < intersections_by_wayId[wayid].length-1; i++){
@@ -420,5 +395,3 @@ export const findExistingIntersections = async (location) => {
 	}
 
 }
-
-// export default findExistingIntersections, createNewIntersections;
