@@ -1,27 +1,24 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
-import {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds} from './storage.js';
+import {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds} from './storage.js';
 import StreetPolygon from './StreetPolygon.js';
 import {processVoronoi} from './voronoi-processing.js';
 import {getAndProcessStreetData} from './street-data.js';
 import {getAllNeighborsForWay, findSideNodesOnOtherStreetWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection} from './node-processing.js';
+import Logger from './Logger.js';
 
-const debug = true;
+const logger = new Logger(false, 'map.js');
 const markers = [];
 const polygons = [];
 const rad = 0.004;
 
-export const createNewIntersections = async (location) => {
+export const createNewIntersections = async (location, existing) => {
 
-	console.log("createNewIntersections");
+		logger.group("createNewIntersections");
+		logger.log("existing:");
+		logger.log(existing);
 
 	const currlat = location.lat;
 	const currlon = location.lng;
-
-	///JUST A TEST
-	// getPolygonsByMultipleStreetIds(streetrelationids).then( (res) =>{
-	// 	console.log(res);
-	// }
-	// )
 
 	//Get all the node info and process it first
 	let resp = await getAndProcessStreetData(currlat, currlon);
@@ -78,16 +75,19 @@ export const createNewIntersections = async (location) => {
 
 	let neighbors = {};
 	const numtoteststart = 0;
-	const numtotestend = 2;
+	const numtotestend = 12;
 
+// Each way (road) has neighbors - roads that intersect it on either side of the given node
  function getNeighborsForWay(nodeid, wayid) {
+	 logger.group("getNeighborsForWay");
 	 const ways = ways_by_refNodeId[nodeid].filter(node => node != nodeid);
 		var node = GetElementsByAttribute(result, "node", "id", nodeid)[0]
 		var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
 		markers.push({position: ll, label: "intersection " + nodeid + " " + node.getAttribute("lat") + "," + node.getAttribute("lon")});
-		console.log("getting neighbors for " + nodeid + " with streets: " + ways);
+		logger.log("getting neighbors for " + nodeid + " with streets: " + ways);
 	neighbors[nodeid] = findSideNodesOnOtherStreetWithMidpoints(result, allNodesInRelation, intersections_by_nodeId, nodeid, wayid)
-	console.log("neighbors for " + nodeid, neighbors[nodeid]);
+	logger.log("neighbors for " + nodeid, neighbors[nodeid]);
+	logger.groupEnd();
  }
 
  if (streetrelationids){
@@ -107,65 +107,92 @@ export const createNewIntersections = async (location) => {
 	});
 }
 
-// 	streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
-// 		// let maxlat = currlat - 0.005;
-// 		// let maxlon = currlon - 0.005;
-// 		intersections_by_wayId[str].forEach((item, i) => {
-// // 			const ways = ways_by_refNodeId[item].filter(node => node != str);
-// // 			 var node = GetElementsByAttribute(result, "node", "id", item)[0]
-// // 			 if (parseFloat(node.getAttribute("lat")) > maxlat){
-// // 				 maxlat = parseFloat(node.getAttribute("lat"))
-// // 			 }
-// // 			 if (parseFloat(node.getAttribute("lon")) > maxlon){
-// // 				 maxlon = parseFloat(node.getAttribute("lon"))
-// // 			 }
-// // 			 var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
-// // 			 markers.push({position: ll, label: "intersection " + item + " " + node.getAttribute("lat") + "," + node.getAttribute("lon")});
-// // 			 console.log("getting neighbors for " + item + " with streets: " + ways);
-// // 		 // neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, item, ways).map(el => el.filter(e => !!e)).filter( g => g.length > 0);
-// // 		 // neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, item, ways);
-// // 		 // neighbors[item] = findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersections_by_nodeId, GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
-// // 		 // neighbors[item] = findSideIntersectionsOnOtherStreet(intersections_by_wayId, intersections_by_nodeId, item, str);
-// // 		 // neighbors[item] = findSideIntersectionsFromNodeAndWayWithMidPoints(result, allNodesInRelation, intersections_by_nodeId, GetElementsByAttribute(result, "node", "id", item)[0], 11553284)
-// // //		 neighbors[item] = findSideIntersectionsOnOtherStreetWithMidpoints(result, intersections_by_wayId, intersections_by_nodeId, item, str)
-// // 		 neighbors[item] = findSideNodesOnOtherStreetWithMidpoints(result, allNodesInRelation, intersections_by_nodeId, item, str)
-// // 		 console.log("neighbors for " + item, neighbors[item]);
-// 		});
-// 		// console.log(wayNames_by_Id[str] + ": maxlat: ", maxlat, ", maxlon: ", maxlon);
-// 	});
+//Currently not used
+	function testWayToGetNeighbors(){
+		logger.group("testWayToGetNeighbors");
+	// 	streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
+	// 		// let maxlat = currlat - 0.005;
+	// 		// let maxlon = currlon - 0.005;
+	// 		intersections_by_wayId[str].forEach((item, i) => {
+	// // 			const ways = ways_by_refNodeId[item].filter(node => node != str);
+	// // 			 var node = GetElementsByAttribute(result, "node", "id", item)[0]
+	// // 			 if (parseFloat(node.getAttribute("lat")) > maxlat){
+	// // 				 maxlat = parseFloat(node.getAttribute("lat"))
+	// // 			 }
+	// // 			 if (parseFloat(node.getAttribute("lon")) > maxlon){
+	// // 				 maxlon = parseFloat(node.getAttribute("lon"))
+	// // 			 }
+	// // 			 var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
+	// // 			 markers.push({position: ll, label: "intersection " + item + " " + node.getAttribute("lat") + "," + node.getAttribute("lon")});
+	// // 			 logger.log("getting neighbors for " + item + " with streets: " + ways);
+	// // 		 // neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, item, ways).map(el => el.filter(e => !!e)).filter( g => g.length > 0);
+	// // 		 // neighbors[item] = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, item, ways);
+	// // 		 // neighbors[item] = findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersections_by_nodeId, GetElementsByAttribute(result, "node", "id", item)[0], 11553284);
+	// // 		 // neighbors[item] = findSideIntersectionsOnOtherStreet(intersections_by_wayId, intersections_by_nodeId, item, str);
+	// // 		 // neighbors[item] = findSideIntersectionsFromNodeAndWayWithMidPoints(result, allNodesInRelation, intersections_by_nodeId, GetElementsByAttribute(result, "node", "id", item)[0], 11553284)
+	// // //		 neighbors[item] = findSideIntersectionsOnOtherStreetWithMidpoints(result, intersections_by_wayId, intersections_by_nodeId, item, str)
+	// // 		 neighbors[item] = findSideNodesOnOtherStreetWithMidpoints(result, allNodesInRelation, intersections_by_nodeId, item, str)
+	// // 		 logger.log("neighbors for " + item, neighbors[item]);
+	// 		});
+	// 		// logger.log(wayNames_by_Id[str] + ": maxlat: ", maxlat, ", maxlon: ", maxlon);
+	// 	});
+		logger.groupEnd();
+	}
 
-	 console.log(neighbors);
+	function labelNodesAndVerts(){
+		logger.group("labelNodesAndVerts");
 
-// Object.keys(neighbors).map( (key) => {
-// 		addNodesToMarkers(neighbors[key], (x,y) => "node " + x + ", " + key + "'s neighbor");
-// });
-// addVertsToMarkers(midpoints, (x,y) => y)
+		addNodesToMarkers(Object.keys(neighbors),labelNode);
+
+ 	 Object.keys(neighbors).map( (key) => {
+ 		 neighbors[key].forEach((item, i) => {
+ 			 		if (item[0]) {
+ 						 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
+ 			  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
+ 					 }
+ 					 if (item[1] && item[1].length>0){
+ 						 var ll3 = new L.LatLng(item[1][0], item[1][1]);
+ 			  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
+ 					 }
+
+ 		 });
+
+ 	 })
+		logger.groupEnd();
+	}
 
 
+	logger.log(neighbors);
 
+labelNodesAndVerts();
 
 	 //If I want to try Voronoi
 	 // let extrapolygons = processVoronoi(result, streetrelationids, intersections_by_wayId);
 	 // Array.prototype.push.apply(polygons, extrapolygons);
 
-	 addNodesToMarkers(Object.keys(neighbors),labelNode);
+//Used to detect already existing polygons
+	 function cornersMatch(corners1, corners2){
+	 	if (corners1.length != corners2.length){
+	 		return false;
+	 	}
+	 	return corners1.every((c, index) =>
+	 		c.every((val, i) => val === corners2[index][i]));
+	 }
 
-	 Object.keys(neighbors).map( (key) => {
-		 neighbors[key].forEach((item, i) => {
-			 		if (item[0]) {
-						 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
-			  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
-					 }
-					 if (item[1] && item[1].length>0){
-						 var ll3 = new L.LatLng(item[1][0], item[1][1]);
-			  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
-					 }
+		function cornerSort(c1, c2){
+			if (c1[0] == c2[0]){
+				return c1[1] - c2[1];
+			}
+			return c1[0]-c2[0];
+		}
 
-		 });
-
-	 })
-
+//For each road, make polygons, add if they don't already exist
+//TODO: Is there a more efficient way to do this?
 function createPolygonsForWay(wayid){
+	logger.group("createPolygonsForWay");
+	var existingwaycorners = existing.polygon.filter( (x) => x.street_id == wayid).map( (x) => x.corners.sort(cornerSort));
+		logger.log("creating polygons for ", wayid)
+		logger.log(existingwaycorners);
 	for (var i = 0; i < intersections_by_wayId[wayid].length-1; i++){
 
 		//TODO when are these empty and what to do about it
@@ -175,14 +202,17 @@ function createPolygonsForWay(wayid){
 			var test = c1.concat(c2);
 			//TODO better filter?
 			test = test.filter( (x) => !!x && x.length>0)
-			if (test.length > 2){
+			if (test.length > 2 && !existingwaycorners.some(l => cornersMatch(l,test.sort()))){
+				logger.log("polygon not found, creating new");
 				var poly = new StreetPolygon(test, wayNames_by_Id[wayid], wayid)
 				polygons.push(poly);
 			}
 		}
 	}
+	logger.groupEnd();
 }
 
+//Create all the polygons
 if (streetrelationids){
 	streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
 		createPolygonsForWay(str);
@@ -193,25 +223,9 @@ if (streetrelationids){
 	})
 }
 
-	 // streetrelationids.slice(numtoteststart,numtotestend).forEach((str, j) => {
-		//  // for (var i = 0; i < intersections_by_wayId[str].length-1; i++){
-		//  //
-		// 	//  //TODO when are these empty and what to do about it
-		// 	//  if (neighbors[intersections_by_wayId[str][i]] && neighbors[intersections_by_wayId[str][i+1]]){
-		// 	// 	 var c1 = neighbors[intersections_by_wayId[str][i]].map( (corner) => corner[1]);
-		// 	// 	 var c2 = neighbors[intersections_by_wayId[str][i+1]].map( (corner) => corner[1]);
-		// 	// 	 var test = c1.concat(c2);
-		// 	// 	 //TODO better filter?
-		// 	// 	 test = test.filter( (x) => !!x && x.length>0)
-		// 	// 	 if (test.length > 2){
-		// 	// 		 var poly = new StreetPolygon(test, wayNames_by_Id[str], str)
-		// 	// 		 polygons.push(poly);
-		// 	// 	 }
-		// 	//  }
-		//  // }
-	 // })
-	 console.log(polygons);
+	 logger.log(polygons);
 
+//Not currently used
 	 function test() {
 
 	 var nodeandIx = findClosestNodeAndIntersection(result, allNodes, intersections_by_nodeId, currlat, currlon);
@@ -255,16 +269,14 @@ if (streetrelationids){
 			 //TRYING TO ACCOMMODATE FOR MORE THAN ONE STREET
 			 var sides1 = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, sides[0], sides1ways);
 
-			 if (debug){
-				 console.log("sides1:");
-				 console.log(sides1);
-			 }
+				 logger.log("sides1:");
+				 logger.log(sides1);
 
 			 const polygon = []
 			 //
 			 sides1.forEach((item, i) => {
 				 if (item.some(el => !!el)){
-					 console.log(item);
+					 logger.log(item);
 					 polygon.push([item[1][0], item[1][1]]);
 			     var ll = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
 					 // markers.push({position: ll, label: "sides1: " + item[0].getAttribute("id")});
@@ -292,10 +304,8 @@ if (streetrelationids){
 			 //TRYING TO ACCOMMODATE FOR MORE THAN ONE STREET
 			 var sides2 = findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, sides[1], sides2ways);
 
-			 if (debug){
-				 console.log("sides2:");
-				 console.log(sides2);
-			 }
+				 logger.log("sides2:");
+				 logger.log(sides2);
 
 
 			 sides2.forEach((item, i) => {
@@ -351,47 +361,92 @@ if (streetrelationids){
 				// markers.push({position: ll, label: "corner " + i + ": " + item[0] + "," + item[1]});
 			 // });
 			 //
-			 // console.log("poly:", poly);
+			 // logger.log("poly:", poly);
 			 var testPoly = new StreetPolygon(polygon.map( (coord) => [coord[0]+1,coord[1]+1]), "Test Street", yourWay + 1);
 		 }
 
 			 // polygons.push(poly)
 			 // polygons.push(testPoly)
-			 // storeData(polygons, "polygons");
-			 console.log("returning:", polygons, markers);
-			 return {polygon: polygons, markers: markers};
+			 storeData(polygons, "polygons");
+				 logger.log("returning:", polygons);
+				 // logger.log("returning:", convertPolygonListToColors(polygons));
+			 // return {polygon: convertPolygonListToColors(polygons), markers: []};
+			 return {polygon: polygons, markers: []};
+			 logger.groupEnd();
 
-		 // },
-		 // (error) => {
-			//  // this.setState({
-			// 	//  isLoaded: true,
-			// 	//  error
-			//  // });
-		 // }
-	 // )
+}
+
+//TODO Get the colors working.  In progress
+const colorSchema = {1: 'white', 2: 'yellow', 3: 'orange', 4:'red', 5:'purple', 6:'blue', 7:'dark grey'}
+
+function convertPolygonListToColors(polygons){
+	return polygons.map( p => {
+		p['color'] = getColorForPolygon(p);
+		return p;
+	});
+}
+
+//TODO how to deal with different color schemas etc and also this is bad
+function getColorForPolygon(polygon){
+	logger.group("getColorForPolygon");
+	let interval = (new Date().getTime() - new Date(polygon._date).getTime())/(1000 * 3600 * 24);
+		logger.log(interval);
+	let schema = Object.keys(colorSchema).sort();
+		logger.log(schema);
+		logger.log(interval < schema[0]);
+		logger.log(colorSchema[schema[0]])
+		if( interval < schema[0]){
+			return colorSchema[schema[0]];
+		}
+		else if( interval < schema[1]){
+			return colorSchema[schema[1]];
+		}
+		else if( interval < schema[2]){
+			return colorSchema[schema[2]];
+		}
+		else if( interval < schema[3]){
+			return colorSchema[schema[3]];
+		}
+		else if( interval < schema[4]){
+			return colorSchema[schema[4]];
+		}
+		else if( interval < schema[5]){
+			return colorSchema[schema[5]];
+		}
+		else if( interval < schema[6]){
+			return colorSchema[schema[6]];
+		}
+			return colorSchema[schema[6]];
+			log.groupEnd();
 }
 
 
+//Get intersections that are alraedy in database, including those for this user
+export const findExistingIntersections = async (user, location) => {
 
-
-export const findExistingIntersections = async (location) => {
-
-	console.log("finding intersections");
-
-	if (debug){
-		console.log(location);
-	}
+		logger.group("findExistingIntersections");
+		logger.log(location);
 
 	var currlat = location.lat;
 	var currlon = location.lng;
+	let bounds = [(currlon-rad),(currlat-rad),(currlon+rad),(currlat+rad)];
 
-	var polyshere = await getPolygonsInBounds([(currlon-rad),(currlat-rad),(currlon+rad),(currlat+rad)]);
+	let polygon = [];
+	var polyshere = await getPolygonsInBounds(bounds);
+	let userpolys = await getUserPolygonsInBounds(user, bounds);
 	if (polyshere && polyshere.length){
-		console.log(polyshere);
-		// return {polygon: polyshere, markers: polyshere.map( (poly) => poly.corners).flat()};
-		return {polygon: polyshere};
-	} else {
-		return {polygon: []}
+		if (userpolys && userpolys.length){
+			polygon = polygon.concat(convertPolygonListToColors(userpolys));
+				logger.log("userpolys:")
+				logger.log(userpolys)
+			polyshere = polyshere.filter( p => !userpolys.includes(p));
+		}
+		// polyshere = convertPolygonListToColors(polyshere);
+			logger.log("polyshere:")
+			logger.log(polyshere);
+		polygon = polygon.concat(polyshere);
 	}
+	return {polygon: polygon}
+	logger.groupEnd();
 
 }
