@@ -20,7 +20,6 @@ class MultiPolygon extends Component {
 
     render(){
       if (this.state.polygons){
-        //TODO make key unique
         return this.state.polygons.map((poly,i) => {
                     let color = poly.color ? poly.color : "dark grey";
                     let corners = poly.corners ? poly.corners : poly._polygon.corners;

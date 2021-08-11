@@ -2,48 +2,50 @@ import AsyncStorage from '@react-native-community/async-storage';
 import StreetPolygon from './StreetPolygon.js';
 import PolygonWithDate from './PolygonWithDate.js';
 import UserPolygon from './UserPolygon.js';
-import Logger from './Logger.js';
 
-const logger = new Logger(false, 'storage.js');
+const debug = true;
+var logger = debug ? console.log.bind(console) : function () {};
+var group = debug ? console.group.bind(console) : function () {};
+var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
 
 const storeData = async (values, key) => {
-  logger.group("store Data:");
+  group("store Data:");
   try {
-      logger.log("storing: ", values, key);
+      logger("storing: ", values, key);
     const jsonValue = JSON.stringify(values)
     await AsyncStorage.mergeItem('@' + key, jsonValue)
   } catch (e) {
-    logger.log(e);
+    logger(e);
   }
-  logger.groupEnd();
+  groupEnd();
 }
 
 const removeData = async (key)  => {
-  logger.group("remove Data:");
+  group("remove Data:");
   try {
-      logger.log("removing: ", key);
+      logger("removing: ", key);
     await AsyncStorage.removeItem('@' + key)
   } catch (e) {
-    logger.log(e);
+    logger(e);
   }
-  logger.groupEnd();
+  groupEnd();
 }
 
 const updateUserPolygon = async (user, polygon) => {
-  logger.group("updateUserPolygon");
-  if (!(polygon instanceof StreetPolygon)){
-    polygon = toClass(polygon, StreetPolygon.prototype);
-  }
+  group("updateUserPolygon");
+  // if (!(polygon instanceof StreetPolygon)){
+  //   polygon = toClass(polygon, StreetPolygon.prototype);
+  // }
   let userPolys = await getUserPolygons(user);
-    logger.log("new poly: ", polygon);
-    logger.log("userPOlys: ", userPolys);
+    logger("new poly: ", polygon);
+    logger("userPOlys: ", userPolys);
   if (!userPolys){
     userPolys = new UserPolygon(user);
   }
     userPolys.addOrUpdatePolygon(polygon);
-      logger.log("updating userpolygon:", userPolys);
+      logger("updating userpolygon:", userPolys);
     storeData(userPolys, "userpolygons_"+user);
-    logger.groupEnd();
+    groupEnd();
 }
 
 //TODO is there a better way to do this?
@@ -52,30 +54,29 @@ obj.__proto__ = proto;
 return obj;
 }
 
-
 const getMyObject = async (key) => {
   try {
     const jsonValue = await AsyncStorage.getItem('@' + key);
     return jsonValue != null ? JSON.parse(jsonValue) : null
   } catch(e) {
-    logger.log(e)
+    logger(e)
   }
 }
 
 const getLocationPolygon = async(loc) => {
-  logger.group("getLocationPolygon");
+  group("getLocationPolygon");
   let minrad = 0.0008;
   let currlat = loc.lat;
   let currlon = loc.lng;
 	let bounds = [(currlon-minrad),(currlat-minrad),(currlon+minrad),(currlat+minrad)];
   let nearby = await getPolygonsInBounds(bounds);
-    logger.log(nearby);
+    logger(nearby);
   return nearby.filter( poly => poly.containsPoint([loc.lat,loc.lng]));
-  logger.groupEnd();
+  groupEnd();
 }
 
 const getUserPolygons = async(user) => {
-  logger.group("getUserPolygons");
+  group("getUserPolygons");
   let userPolys = await getMyObject("userpolygons_" + user )
   /////switch to UserPolygon
   if (userPolys && !(userPolys instanceof UserPolygon)){
@@ -84,24 +85,23 @@ const getUserPolygons = async(user) => {
   } else {
     return null;
   }
-  logger.groupEnd();
+  groupEnd();
 }
 
 const getUserPolygonsInBounds = async(user, bounds) => {
-  logger.group("getUserPolygonsInBounds");
-    logger.log("get user polygons in bounds");
+  group("getUserPolygonsInBounds");
   let userPolys = await getUserPolygons(user)
-  if (userPolys && userPolys.polygons && userPolys.polygons.length){
-      logger.log(userPolys.polygons);
-    return userPolys.polygons.filter( (pd) => toClass(pd._polygon, StreetPolygon.prototype).isInBounds(bounds));
+  //UserPolys is a dictionary; turn this into just an array of those that are in bounds
+  if (userPolys && userPolys.polygons && Object.keys(userPolys.polygons).length > 0){
+    return Object.values(userPolys.polygons).filter( (pd) => toClass(pd, PolygonWithDate.prototype).isInBounds(bounds));
   } else {
     return [];
   }
-  logger.groupEnd();
+  groupEnd();
 }
 
 const getPolygonsInBounds = async(bounds) => {
-  logger.group("getPolygonsInBounds");
+  group("getPolygonsInBounds");
     let polys = await getMyObject("polygons");
     if (!polys){
       return [];
@@ -111,8 +111,8 @@ const getPolygonsInBounds = async(bounds) => {
       polys = Object.values(polys);
     }
     let result = polys.map((item) => toClass(item, StreetPolygon.prototype)).filter( (poly) => poly.isInBounds(bounds));
-      logger.log("in bounds: ")
-      logger.log(result)
+      logger("in bounds: ")
+      logger(result)
     return result;
     log.groupEnd();
 }
@@ -140,4 +140,4 @@ const getPolygonsByMultipleStreetIds = async (ids) => {
   }, {});
 }
 
-export {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds, getLocationPolygon, updateUserPolygon, removeData};
+export {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds, getLocationPolygon, updateUserPolygon, removeData, toClass};

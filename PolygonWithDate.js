@@ -1,10 +1,11 @@
-var uuid = require('react-native-uuid');
+import {StreetPolygon, createPolygon} from './StreetPolygon.js';
+import toClass from './storage.js';
 
 export default class PolygonWithDate{
   constructor(polygon, date){
-    this._polygon = polygon;
+    this._polygon = createPolygon(polygon);
     this._date = date;
-    this._id = uuid.v4();
+    // this._id = uuid.v4();
   }
 
   get polygon(){
@@ -15,9 +16,14 @@ export default class PolygonWithDate{
     return this._date;
   }
 
-  get id(){
-    return this._id;
+  isInBounds(bounds){
+        this._polygon = createPolygon(this._polygon)
+    return this._polygon.isInBounds(bounds);
   }
+
+  // get id(){
+  //   return this._id;
+  // }
 
   set date(date){
     this._date = date;

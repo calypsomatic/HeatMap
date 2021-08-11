@@ -2,13 +2,17 @@ import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 // import { create, all } from 'mathjs';
 import Logger from './Logger.js';
 
-const logger = new Logger(true, 'street-data.js');
+// const logger = new Logger(false, 'street-data.js');
+const debug = false;
+var logger = debug ? console.log.bind(console) : function () {};
+var group = debug ? console.group.bind(console) : function () {};
+var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
 //Not sure if this will want to be changed, or when
 const rad = 0.004;
 const osmapi = "https://www.openstreetmap.org/api/0.6/"
 
 export const getAndProcessStreetData = async (currlat, currlon) => {
-	logger.group("getAndProcessStreetData");
+	group("getAndProcessStreetData");
 	var osm =	osmapi + "map?bbox="+(currlon-rad)+","+(currlat-rad)+","+(currlon+rad)+","+(currlat+rad)
 
 	//TODO Deal with errors and such
@@ -39,7 +43,7 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
       if (!wayNames_by_Id[item]){
         wayNames_by_Id[item] = maybename[0];
       } else if (wayNames_by_Id[item] != maybename[0]){
-         logger.log("Found two different names: " + wayNames_by_Id[item] + " and " + maybename[0])
+         logger("Found two different names: " + wayNames_by_Id[item] + " and " + maybename[0])
       }
       if (!ways_by_Name[maybename[0]]){
         ways_by_Name[maybename[0]] = [item];
@@ -81,12 +85,12 @@ function oldway(){
   //       if (!wayNames_by_Id[key]){
   //         wayNames_by_Id[key] = maybename[0];
   //       } else if (wayNames_by_Id[key] != maybename[0]){
-  //        //   logger.log("Found two different names: " + wayNames_by_Id[key] + " and " + maybename[0])
+  //        //   logger("Found two different names: " + wayNames_by_Id[key] + " and " + maybename[0])
   //       }
   //       if (!ways_by_Name[maybename[0]]){
   //         ways_by_Name[maybename[0]] = [key];
   //       } else if (!ways_by_Name[maybename[0]].includes(key)){
-  //        //   logger.log("Found two different keys for " + maybename[0]);
+  //        //   logger("Found two different keys for " + maybename[0]);
   //         ways_by_Name[maybename[0]].push(key);
   //         usekey = ways_by_Name[maybename[0]][0];
   //       }
@@ -97,7 +101,7 @@ function oldway(){
   //   });
   //   //EXPERIMENT
   //   if (allNodesInRelation[usekey]){
-  //     // logger.log(usekey + " already exists");
+  //     // logger(usekey + " already exists");
   //     allNodesInRelation[usekey] = allNodesInRelation[usekey].concat(allnodes);
   //     usekey = null;
   //   } else {
@@ -180,7 +184,7 @@ function oldway(){
     wayNames_by_Id:wayNames_by_Id, intersections_by_wayId: intersections_by_wayId, allNodesInRelation: allNodesInRelation,
   allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId}
 	// allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId, streetrelationids: streetrelationids}
-	logger.groupEnd();
+	groupEnd();
 }
 
 //This is an attempt to keep the correct order of nodes in streets

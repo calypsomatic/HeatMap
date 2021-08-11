@@ -1,11 +1,13 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 import StreetPolygon from './StreetPolygon.js';
-import Logger from './Logger.js';
 
-const logger = new Logger(true, 'node-processing.js');
+const debug = false;
+var logger = debug ? console.log.bind(console) : function () {};
+var group = debug ? console.group.bind(console) : function () {};
+var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
 
 export function getAllNeighborsForWay(result, intersections_by_nodeId, wayid, way_intersections, nodes_by_wayId){
- logger.group("getAllNeighborsForWay");
+ group("getAllNeighborsForWay");
 	 let neighbors = {}
 	 neighbors[way_intersections[0]] = findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, intersections_by_nodeId, way_intersections[0], wayid);
 	 if (way_intersections.length < 2){
@@ -21,11 +23,11 @@ export function getAllNeighborsForWay(result, intersections_by_nodeId, wayid, wa
 		 neighbors[way_intersections[i]] = [[null,perps[0]],[null,perps[1]]];
 	 }
 	 return neighbors;
-	 logger.groupEnd();
+	 groupEnd();
  }
 
 export function findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, intersections_by_nodeId, nodeid, wayid){
-		 logger.group("findSideIntersectionsFromNodeAndWayWithMidPoints");
+		 group("findSideIntersectionsFromNodeAndWayWithMidPoints");
 		 let otherStreets = intersections_by_nodeId[nodeid].filter(way => way != wayid);
 		 //this is probably a really dumb idea
 		 let streetNodes = nodes_by_wayId[otherStreets[0]]
@@ -68,7 +70,7 @@ export function findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, 
 		 			backmp)]
 		 }
 		 return resp;
-		 logger.groupEnd();
+		 groupEnd();
 	 }
 
 //////////HELPER FUNCTIONS/////////
@@ -106,7 +108,7 @@ return [[node1[0]+d*lvnormal[0],node1[1]+d*lvnormal[1]], [node1[0]-d*lvnormal[0]
 }
 
 function getPerpendiculars(node1, node2, side){
-//		 logger.log("getting perps for ", node1, node2);
+//		 logger("getting perps for ", node1, node2);
 	// addCoordsToMarkers([node1,node2], (x,y) => "node " + y);
 	const d = 0.0005; //TODO figure this out
 	// const linevector = [node2[0]-node1[0], node2[1]-node1[1]];
@@ -139,7 +141,7 @@ function merge(arr1, arr2){
 //currently not used
 export function findClosestNodeAndIntersection(result, allNodes, intersections_by_nodeId, lat, lng)
 	 {
-		 logger.group("findClosestNodeAndIntersection");
+		 group("findClosestNodeAndIntersection");
 		 //Let's try to find out which street you are on and what the closest intersection is
 		 var minStreet = 100000;
 		 var minStreetNode = null;
@@ -162,13 +164,13 @@ export function findClosestNodeAndIntersection(result, allNodes, intersections_b
 		 });
 
 			 return [minStreetNode, minIsxNode];
-			 logger.groupEnd();
+			 groupEnd();
 	 }
 
 //curently not used
 export function findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersections_by_nodeId, anyNode, wayNode)
 	 {
-		 logger.group("findSideIntersectionsFromNodeAndWay");
+		 group("findSideIntersectionsFromNodeAndWay");
 		 var waynodes = allNodesInRelation[wayNode];
 		 var idx = waynodes.indexOf(anyNode.getAttribute("id"));
 		 var forward = waynodes.slice(idx+1).concat(waynodes.slice(0,idx)).find(function(el, i){
@@ -178,13 +180,13 @@ export function findSideIntersectionsFromNodeAndWay(allNodesInRelation, intersec
 			 return el in intersections_by_nodeId;
 		 })
 		 return [forward, backward];
-		 logger.groupEnd();
+		 groupEnd();
 	 }
 
 //currently not used
 export function findSideIntersectionsFromNodeAndWayWithMidPoints(result, allNodesInRelation, intersections_by_nodeId, anyNode, wayNode)
  	 {
-		 logger.group("findSideIntersectionsFromNodeAndWayWithMidPoints");
+		 group("findSideIntersectionsFromNodeAndWayWithMidPoints");
  		 var waynodes = allNodesInRelation[wayNode];
  		 var idx = waynodes.indexOf(anyNode.getAttribute("id"));
  		 var forward = waynodes.slice(idx+1).concat(waynodes.slice(0,idx)).find(function(el, i){
@@ -198,14 +200,14 @@ export function findSideIntersectionsFromNodeAndWayWithMidPoints(result, allNode
 		 let backNode = GetElementsByAttribute(result, "node", "id", backward)[0];
 		 let backmp = [(parseFloat(anyNode.getAttribute("lat")) + parseFloat(backNode.getAttribute("lon")))/2.0, (parseFloat(anyNode.getAttribute("lon")) + parseFloat(backNode.getAttribute("lon")))/2.0]
  		 return [[forNode, formp], [backNode, backmp]];
-		 logger.groupEnd();
+		 groupEnd();
  	 }
 
 
 //currently not used
 export function findSideIntersectionsOnOtherStreetWithMidpoints(result, intersections_by_wayId, intersections_by_nodeId, nodeid, wayid)
 		 {
-			 logger.group("findSideIntersectionsOnOtherStreetWithMidpoints");
+			 group("findSideIntersectionsOnOtherStreetWithMidpoints");
 			 let otherStreets = intersections_by_nodeId[nodeid].filter(way => way != wayid);
 			 //this is probably a really dumb idea
 			 let streetIntersections = intersections_by_wayId[otherStreets[0]]
@@ -246,13 +248,13 @@ export function findSideIntersectionsOnOtherStreetWithMidpoints(result, intersec
 						 backmp)]
 			 }
 			 return resp;
-			 logger.groupEnd();
+			 groupEnd();
 		 }
 
 //currently not used
 export function findSideIntersectionsOnOtherStreet(intersections_by_wayId, intersections_by_nodeId, nodeid, wayid)
 	 	 {
-			 logger.group("findSideIntersectionsOnOtherStreet");
+			 group("findSideIntersectionsOnOtherStreet");
 			 let otherStreets = intersections_by_nodeId[nodeid].filter(way => way != wayid);
 			 //this is probably a really dumb idea
 			 let streetIntersections = intersections_by_wayId[otherStreets[0]]
@@ -272,13 +274,13 @@ export function findSideIntersectionsOnOtherStreet(intersections_by_wayId, inter
 				 result.push(streetIntersections[idx+1]);
 			 }
 			 return result;
-			 logger.groupEnd();
+			 groupEnd();
 	 	 }
 
 //TRYING TO ACCOMMODATE FOR MORE THAN ONE STREET
 //currently not used
 export function findSideIntersectionsByDistanceWithMidpoints(result, intersections_by_wayId, isxId, wayIds){
-	logger.group("findSideIntersectionsByDistanceWithMidpoints");
+	group("findSideIntersectionsByDistanceWithMidpoints");
 		 var isxNode = GetElementsByAttribute(result, "node", "id", isxId)[0];
 		 // var streetIx = wayIds.map((wid) => intersections_by_wayId[wid]).flat();
 		 var streetIx = wayIds.map((wid) => intersections_by_wayId[wid]).flat().filter(node => node != isxId);
@@ -327,5 +329,5 @@ export function findSideIntersectionsByDistanceWithMidpoints(result, intersectio
 		 }
 		 let v = [[minIsx1, mp1], [minIsx2, mp2]];
 		 return v;
-		 logger.groupEnd();
+		 groupEnd();
 	 }
