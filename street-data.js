@@ -1,8 +1,6 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 // import { create, all } from 'mathjs';
-import Logger from './Logger.js';
 
-// const logger = new Logger(false, 'street-data.js');
 const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};

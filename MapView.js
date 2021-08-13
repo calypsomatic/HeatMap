@@ -8,9 +8,7 @@ import MultiPolygon from './MultiPolygon.js';
 import {storeData, getMyObject, getLocationPolygon, updateUserPolygon, removeData} from './storage.js';
 import StreetPolygon from './StreetPolygon.js';
 import PolygonWithDate from './PolygonWithDate.js';
-import Logger from './Logger.js';
 
-// const logger = new Logger(false, 'MapView.js');
 const debug = true;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
@@ -79,16 +77,8 @@ class MapView extends Component {
             }
               logger(localp.id);
             //update this polygon with current date and assign to user
-            ///////////
-            //Try to pass just the polygon and update date in method
-            //var userp = new PolygonWithDate(localp, new Date())
             updateUserPolygon(user, localp);
-
-            ///////
-            // var userp = new PolygonWithDate(localp, new Date())
-            // updateUserPolygon(user, userp);
               logger(this.state);
-              // logger("removing userpolgyons");
             // removeData("userpolygons_"+user)
             // removeData("polygons");
             groupEnd();

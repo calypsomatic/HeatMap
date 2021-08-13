@@ -33,9 +33,6 @@ const removeData = async (key)  => {
 
 const updateUserPolygon = async (user, polygon) => {
   group("updateUserPolygon");
-  // if (!(polygon instanceof StreetPolygon)){
-  //   polygon = toClass(polygon, StreetPolygon.prototype);
-  // }
   let userPolys = await getUserPolygons(user);
     logger("new poly: ", polygon);
     logger("userPOlys: ", userPolys);

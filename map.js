@@ -4,9 +4,7 @@ import StreetPolygon from './StreetPolygon.js';
 import {processVoronoi} from './voronoi-processing.js';
 import {getAndProcessStreetData} from './street-data.js';
 import {getAllNeighborsForWay, findSideNodesOnOtherStreetWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection} from './node-processing.js';
-import Logger from './Logger.js';
 
-// const logger = new Logger(true, 'map.js');
 const debug = true;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
@@ -435,14 +433,12 @@ export const findExistingIntersections = async (user, location) => {
 	let bounds = [(currlon-rad),(currlat-rad),(currlon+rad),(currlat+rad)];
 
 	let polygons = [];
-	// let polygons = new Set();
 	var polyshere = await getPolygonsInBounds(bounds);
 	let userpolys = await getUserPolygonsInBounds(user, bounds);
 	if (polyshere && polyshere.length){
 		logger("userpolys:")
 		logger(userpolys);
 		if (userpolys && userpolys.length){
-			// polygons = polygons.concat(convertPolygonListToColors(userpolys));
 			polygons = convertPolygonListToColors(userpolys);
 			//Remove any that are in the user list to avoid duplicates
 			polyshere = polyshere.filter( p => !polygons.some(pg => pg._id == p._id));
