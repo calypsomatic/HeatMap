@@ -5,7 +5,7 @@ import {processVoronoi} from './voronoi-processing.js';
 import {getAndProcessStreetData} from './street-data.js';
 import {getAllNeighborsForWay, findSideNodesOnOtherStreetWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection} from './node-processing.js';
 
-const debug = true;
+const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -379,10 +379,9 @@ if (streetrelationids){
 }
 
 //TODO Get the colors working.  In progress
-const colorSchema = {1: 'white', 2: 'yellow', 3: 'orange', 4:'red', 5:'purple', 6:'blue', 7:'dark grey'}
+const colorSchema = {1: 'yellow', 2: 'orange', 3: 'red', 4:'purple', 5:'blue', 6:'green', 7:'dark grey'}
 
 function convertPolygonListToColors(polygons){
-	console.log(polygons);
 	return polygons.map( p => {
 		p._polygon['color'] = getColorForPolygon(p);
 		return p._polygon;
