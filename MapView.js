@@ -1,5 +1,5 @@
 import React, {useState, useEffect } from 'react';
-import { TileLayer, Polygon, MapContainer, useMap } from 'react-leaflet';
+import { TileLayer, Polygon, MapContainer, useMap, LayerGroup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import Geolocation from '@react-native-community/geolocation';
 import L from 'leaflet';
@@ -7,7 +7,7 @@ import {findExistingIntersections, createNewIntersections} from './map.js';
 import {storeData, getMyObject, getLocationPolygon, updateUserPolygon, removeData} from './storage.js';
 import StreetPolygon from './StreetPolygon.js';
 
-const debug = true;
+const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -36,37 +36,25 @@ function MultiPoly(polygons) {
 
 function BigPoly(bounds){
   group("BigPoly");
-  logger(bounds);
-  let b= bounds.bounds;
-  if (b && b.length){
-    let poss = [[b[1],b[0]],[b[3],b[0]],[b[1],b[2]],[b[3],b[2]]]
-    logger(poss)
-    let test = new StreetPolygon(poss, null, null)
-    logger(test.corners)
-    let p = bounds.polygons;
-    if (p && p.length){
-      let t = [poss];
-      p.forEach(c => {
-        t.push(c.corners);
-      })
-      logger(t)
-      return <Polygon fillColor = {"dark grey"} positions={t} stroke={false}/>
-    }
-    return <Polygon fillColor = {"dark grey"} positions={poss} stroke={false}/>
+  let poss = [[90, -180], [90, 180], [-90, 180], [-90, -180]]
+  // let test = new StreetPolygon(poss, null, null)
+  // logger(test.corners)
+  let p = bounds.polygons;
+  if (p && p.length){
+    let t = [poss];
+    // console.log(p[0].corners);
+    // let test = new StreetPolygon(p[0].corners, null, null)
+    // console.log(test.corners);
+    p.forEach(c => {
+      t.push(c.corners);
+    })
+    logger(t)
+    return <Polygon fillColor = {"dark grey"} positions={t} stroke={false} />
   } else {
-    return null;
+    return <Polygon fillColor = {'#000000'} positions={poss} stroke={false}/>
   }
-  // let bigpoly = L.polygon(
-  //   [[[52, -1],
-  //     [52, 1],
-  //     [50, 1],
-  //     [50, -1]], //outer ring
-  //    [[51.509, -0.08],
-  //     [51.503, -0.07],
-  //     [51.51, -0.047]]] // cutout
-  //   ).addTo(map);
   groupEnd();
-}
+  }
 
 function PolyMap(){
   const[loc, setLoc] = useState(null);
@@ -89,7 +77,12 @@ function PolyMap(){
             createNewIntersections(currentLocation, res)
             .then(resnew => {
               group("MapView.createNewIntersections");
-              setPolygons(resnew.polygon.concat(res.polygon));
+              // this.setState({ polygons: resnew.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => resnew.polygon.includes(poly)) : []),
+              console.log(res.polygon);
+              console.log(resnew.polygon);
+              let test = resnew.polygon.filter(p => res.polygon.some(r => r.id == p.id))
+              console.log(test);
+              setPolygons(res.polygon.concat(test));
               groupEnd();
             })
             //Gets the polygon where you are right now
@@ -112,8 +105,17 @@ function PolyMap(){
     }, [])
     logger(polygons, bounds, loc);
     return (
-      // <MultiPoly polygons={polygons}/>)
-      <BigPoly polygons={polygons} loc={loc} zoom={zoom} bounds={bounds}/>)
+      <>
+        <BigPoly polygons={polygons} loc={loc} zoom={zoom} bounds={bounds}/>
+        <MultiPoly polygons={polygons}/>
+      </>
+    )
+    // return (
+    //   <>
+    //     <MultiPoly polygons={polygons}/>
+    //   </>
+    // )
+    // return null
 }
 
 function MapView() {
