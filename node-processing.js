@@ -38,14 +38,18 @@ export function findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, 
   		 		streetNodes = merge(streetNodes,moreNodes);
   		 	}
   		 }
+       let resp = [];
 
+       //TODO also what to do here
+       if (!streetNodes){
+         return resp;
+       }
   		 //TODO What to do here
   		 if (streetNodes && streetNodes.length < 2){
   		 	return [[null,[]],[null,[]]]
   		 }
 
   		 var idx = streetNodes.indexOf(nodeid);
-  		 let resp = [];
   		 let anyNode = GetElementsByAttribute(result, "node", "id", nodeid)[0];
   		 if (idx > 0){
   		 	var forNode = GetElementsByAttribute(result, "node", "id", streetNodes[idx-1])[0];
@@ -71,6 +75,9 @@ export function findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, 
   		 			backmp)]
   		 }
   		 return resp;
+     }
+     else {
+       return []
      }
 		 groupEnd();
 	 }
