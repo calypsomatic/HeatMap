@@ -3,7 +3,7 @@ import StreetPolygon from './StreetPolygon.js';
 import PolygonWithDate from './PolygonWithDate.js';
 import UserPolygon from './UserPolygon.js';
 
-const debug = true;
+const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};

@@ -28,48 +28,57 @@ export function getAllNeighborsForWay(result, intersections_by_nodeId, wayid, wa
 
 export function findSideNodesOnOtherStreetWithMidpoints(result, nodes_by_wayId, intersections_by_nodeId, nodeid, wayid){
 		 group("findSideIntersectionsFromNodeAndWayWithMidPoints");
-		 let otherStreets = intersections_by_nodeId[nodeid].filter(way => way != wayid);
-		 //this is probably a really dumb idea
-		 let streetNodes = nodes_by_wayId[otherStreets[0]]
-		 if (otherStreets.length > 1){
-		 	for (let i = 1; i < otherStreets.length; i++){
-		 		let moreNodes = nodes_by_wayId[otherStreets[i]]
-		 		streetNodes = merge(streetNodes,moreNodes);
-		 	}
-		 }
+     if (intersections_by_nodeId[nodeid] && intersections_by_nodeId[nodeid].length){
+  		 let otherStreets = intersections_by_nodeId[nodeid].filter(way => way != wayid);
+  		 //this is probably a really dumb idea
+  		 let streetNodes = nodes_by_wayId[otherStreets[0]]
+  		 if (otherStreets.length > 1){
+  		 	for (let i = 1; i < otherStreets.length; i++){
+  		 		let moreNodes = nodes_by_wayId[otherStreets[i]]
+  		 		streetNodes = merge(streetNodes,moreNodes);
+  		 	}
+  		 }
+       let resp = [];
 
-		 //TODO What to do here
-		 if (streetNodes.length < 2){
-		 	return [[null,[]],[null,[]]]
-		 }
+       //TODO also what to do here
+       if (!streetNodes){
+         return resp;
+       }
+  		 //TODO What to do here
+  		 if (streetNodes && streetNodes.length < 2){
+  		 	return [[null,[]],[null,[]]]
+  		 }
 
-		 var idx = streetNodes.indexOf(nodeid);
-		 let resp = [];
-		 let anyNode = GetElementsByAttribute(result, "node", "id", nodeid)[0];
-		 if (idx > 0){
-		 	var forNode = GetElementsByAttribute(result, "node", "id", streetNodes[idx-1])[0];
-//		 	var formp = [(parseFloat(anyNode.getAttribute("lat")) + parseFloat(forNode.getAttribute("lat")))/2.0, (parseFloat(anyNode.getAttribute("lon")) + parseFloat(forNode.getAttribute("lon")))/2.0]
-			var formp = extendMidpoint(nodeToCoords(anyNode), nodeToCoords(forNode), 0);
-		 	resp.push([forNode,formp])
-		 } else {
-		 	resp.push(null)
-		 }
-		 if (idx < streetNodes.length - 1){
-		 	var backNode = GetElementsByAttribute(result, "node", "id", streetNodes[idx+1])[0];
-//		 	var backmp = [(parseFloat(anyNode.getAttribute("lat")) + parseFloat(backNode.getAttribute("lat")))/2.0, (parseFloat(anyNode.getAttribute("lon")) + parseFloat(backNode.getAttribute("lon")))/2.0]
-			var backmp = extendMidpoint(nodeToCoords(anyNode), nodeToCoords(backNode), 0);
-		 	resp.push([backNode,backmp]);
-		 } else {
-		 			resp.push([null,extendMidpoint(
-		 					[parseFloat(anyNode.getAttribute("lat")), parseFloat(anyNode.getAttribute("lon"))],
-		 					formp)])
-		 }
-		 if (!resp[0]){
-		 	resp[0] = [null,extendMidpoint(
-		 			[parseFloat(anyNode.getAttribute("lat")), parseFloat(anyNode.getAttribute("lon"))],
-		 			backmp)]
-		 }
-		 return resp;
+  		 var idx = streetNodes.indexOf(nodeid);
+  		 let anyNode = GetElementsByAttribute(result, "node", "id", nodeid)[0];
+  		 if (idx > 0){
+  		 	var forNode = GetElementsByAttribute(result, "node", "id", streetNodes[idx-1])[0];
+  //		 	var formp = [(parseFloat(anyNode.getAttribute("lat")) + parseFloat(forNode.getAttribute("lat")))/2.0, (parseFloat(anyNode.getAttribute("lon")) + parseFloat(forNode.getAttribute("lon")))/2.0]
+  			var formp = extendMidpoint(nodeToCoords(anyNode), nodeToCoords(forNode), 0);
+  		 	resp.push([forNode,formp])
+  		 } else {
+  		 	resp.push(null)
+  		 }
+  		 if (idx < streetNodes.length - 1){
+  		 	var backNode = GetElementsByAttribute(result, "node", "id", streetNodes[idx+1])[0];
+  //		 	var backmp = [(parseFloat(anyNode.getAttribute("lat")) + parseFloat(backNode.getAttribute("lat")))/2.0, (parseFloat(anyNode.getAttribute("lon")) + parseFloat(backNode.getAttribute("lon")))/2.0]
+  			var backmp = extendMidpoint(nodeToCoords(anyNode), nodeToCoords(backNode), 0);
+  		 	resp.push([backNode,backmp]);
+  		 } else {
+  		 			resp.push([null,extendMidpoint(
+  		 					[parseFloat(anyNode.getAttribute("lat")), parseFloat(anyNode.getAttribute("lon"))],
+  		 					formp)])
+  		 }
+  		 if (!resp[0]){
+  		 	resp[0] = [null,extendMidpoint(
+  		 			[parseFloat(anyNode.getAttribute("lat")), parseFloat(anyNode.getAttribute("lon"))],
+  		 			backmp)]
+  		 }
+  		 return resp;
+     }
+     else {
+       return []
+     }
 		 groupEnd();
 	 }
 

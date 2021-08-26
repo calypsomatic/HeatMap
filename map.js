@@ -5,13 +5,13 @@ import {processVoronoi} from './voronoi-processing.js';
 import {getAndProcessStreetData} from './street-data.js';
 import {getAllNeighborsForWay, findSideNodesOnOtherStreetWithMidpoints, findSideIntersectionsFromNodeAndWay, findClosestNodeAndIntersection} from './node-processing.js';
 
-const debug = true;
+const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
 const markers = [];
 const polygons = [];
-const rad = 0.004;
+const rad = 0.01;
 
 export const createNewIntersections = async (location, existing) => {
 
@@ -78,6 +78,7 @@ export const createNewIntersections = async (location, existing) => {
 	let neighbors = {};
 	const numtoteststart = 0;
 	const numtotestend = 12;
+	logger("intersections_by_wayId.length: ", Object.keys(intersections_by_wayId).length);
 
 // Each way (road) has neighbors - roads that intersect it on either side of the given node
  function getNeighborsForWay(nodeid, wayid) {
@@ -100,7 +101,13 @@ export const createNewIntersections = async (location, existing) => {
 		 // });
  });
 } else {
-	Object.keys(intersections_by_wayId).slice(numtoteststart, numtotestend).forEach((way, i) => {
+	// Object.keys(intersections_by_wayId).slice(numtoteststart, numtotestend).forEach((way, i) => {
+		Object.keys(intersections_by_wayId).forEach((way, i) => {
+			// logger("result: ", result);
+			// logger("intersections_by_nodeId: ", intersections_by_nodeId);
+			// logger("way: ", way);
+			// logger("intersections_by_wayId[way]: ", intersections_by_wayId[way]);
+			// logger("allNodesInRelation: ", allNodesInRelation);
 		let newneighbors = getAllNeighborsForWay(result, intersections_by_nodeId, way, intersections_by_wayId[way], allNodesInRelation);
 		neighbors = {...neighbors, ...newneighbors};
 		// intersections_by_wayId[way].forEach((item, j) => {
@@ -145,14 +152,14 @@ export const createNewIntersections = async (location, existing) => {
 		group("labelNodesAndVerts");
 
 		addNodesToMarkers(Object.keys(neighbors),labelNode);
-
+		logger(neighbors);
  	 Object.keys(neighbors).map( (key) => {
  		 neighbors[key].forEach((item, i) => {
  			 		if (item[0]) {
  						 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
  			  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
  					 }
- 					 if (item[1] && item[1].length>0){
+ 					 if (item[1] && item[1].length>0 && !isNaN(item[1][0]) && !isNaN(item[1][1])){
  						 var ll3 = new L.LatLng(item[1][0], item[1][1]);
  			  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
  					 }
@@ -370,7 +377,7 @@ if (streetrelationids){
 			 // polygons.push(poly)
 			 // polygons.push(testPoly)
 			 storeData(polygons, "polygons");
-				 logger("returning:", polygons);
+			 logger("returning:", polygons);
 				 // logger("returning:", convertPolygonListToColors(polygons));
 			 // return {polygon: convertPolygonListToColors(polygons), markers: []};
 			 return {polygon: polygons, markers: []};
@@ -379,10 +386,9 @@ if (streetrelationids){
 }
 
 //TODO Get the colors working.  In progress
-const colorSchema = {1: 'white', 2: 'yellow', 3: 'orange', 4:'red', 5:'purple', 6:'blue', 7:'dark grey'}
+const colorSchema = {1: 'yellow', 2: 'orange', 3: 'red', 4:'purple', 5:'blue', 6:'green', 7:'dark blue'}
 
 function convertPolygonListToColors(polygons){
-	console.log(polygons);
 	return polygons.map( p => {
 		p._polygon['color'] = getColorForPolygon(p);
 		return p._polygon;
@@ -417,7 +423,8 @@ function getColorForPolygon(polygon){
 		else if( interval < schema[6]){
 			return colorSchema[schema[6]];
 		}
-			return colorSchema[schema[6]];
+			// return colorSchema[schema[6]];
+			return null;
 			// groupEnd();
 }
 
