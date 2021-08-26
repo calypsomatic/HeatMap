@@ -20,11 +20,11 @@ var zoom = 16;
 function MultiPoly(polygons) {
   group("MultiPoly");
   if (polygons){
-    logger(polygons);
+    // logger(polygons);
     return polygons.polygons.map((poly,i) => {
                 let color = poly.color ? poly.color : "dark grey";
                 let corners = poly.corners ? poly.corners : poly._polygon.corners;
-                logger(corners);
+                // logger(corners);
                 return <Polygon fillColor = {color} positions={corners} key={poly.id} stroke={false}/>
             });
     }
@@ -37,14 +37,9 @@ function MultiPoly(polygons) {
 function BigPoly(bounds){
   group("BigPoly");
   let poss = [[90, -180], [90, 180], [-90, 180], [-90, -180]]
-  // let test = new StreetPolygon(poss, null, null)
-  // logger(test.corners)
   let p = bounds.polygons;
   if (p && p.length){
     let t = [poss];
-    // console.log(p[0].corners);
-    // let test = new StreetPolygon(p[0].corners, null, null)
-    // console.log(test.corners);
     p.forEach(c => {
       t.push(c.corners);
     })
@@ -72,16 +67,20 @@ function PolyMap(){
             .then(res => {
               group("MapView.findExistingIntersections");
               logger(res);
+              // res.polygon.forEach((p) => {
+              //   p.color = "blue";
+              // })
             setPolygons(res.polygon)
             //if there are nearby intersections that aren't in the db yet, create them
             createNewIntersections(currentLocation, res)
             .then(resnew => {
               group("MapView.createNewIntersections");
               // this.setState({ polygons: resnew.polygon.concat(this.state.polygons ? this.state.polygons.filter( (poly) => resnew.polygon.includes(poly)) : []),
-              console.log(res.polygon);
-              console.log(resnew.polygon);
-              let test = resnew.polygon.filter(p => res.polygon.some(r => r.id == p.id))
-              console.log(test);
+              let test = resnew.polygon.filter(p => !res.polygon.some(r => r.id == p.id))
+              // test.forEach((item) => {
+              //   item.color = "red";
+              // });
+
               setPolygons(res.polygon.concat(test));
               groupEnd();
             })
