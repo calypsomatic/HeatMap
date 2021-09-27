@@ -3,7 +3,7 @@ import StreetPolygon from './StreetPolygon.js';
 import PolygonWithDate from './PolygonWithDate.js';
 import UserPolygon from './UserPolygon.js';
 
-const debug = false;
+const debug = true;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -12,12 +12,50 @@ const storeData = async (values, key) => {
   group("store Data:");
   try {
       logger("storing: ", values, key);
-    const jsonValue = JSON.stringify(values)
-    await AsyncStorage.mergeItem('@' + key, jsonValue)
+      const jsonValue = JSON.stringify(values)
+      await AsyncStorage.mergeItem('@' + key, jsonValue)
   } catch (e) {
     logger(e);
   }
   groupEnd();
+}
+
+const removePolygons = async(toRemove) => {
+  logger("removing polygons: ", toRemove);
+  let existing = await getMyObject("polygons");
+  existing = Object.values(existing).filter( (x) => !toRemove.has(x._id));
+  const jsonValue = JSON.stringify(existing)
+  await AsyncStorage.setItem('@polygons', jsonValue)
+}
+
+const storePolygons = async(values) => {
+  logger("storing polygons: ", values);
+  let existing = await getMyObject("polygons");
+  logger("existing: ", existing);
+  if (existing){
+    let remove = new Set()
+    let valueKeys = values.map( x => x._center.nodeid)
+    for (const [key, x] of Object.entries(existing)) {
+      if (valueKeys.includes(x._center.nodeid)){
+        remove.add(x._id)
+      }
+  }
+  existing = Object.values(existing).filter( (x) => !remove.has(x._id));
+  logger("storing: ", existing.concat(values));
+  const jsonValue = JSON.stringify(existing.concat(values))
+  await AsyncStorage.setItem('@polygons', jsonValue)
+}
+else {
+    storeData(values, "polygons");
+  }
+}
+
+function cornersMatch(corners1, corners2){
+ if (corners1.length != corners2.length){
+   return false;
+ }
+ return corners1.every((c, index) =>
+   c.every((val, i) => val === corners2[index][i]));
 }
 
 const removeData = async (key)  => {
@@ -75,7 +113,7 @@ const getLocationPolygon = async(loc) => {
 const getUserPolygons = async(user) => {
   group("getUserPolygons");
   let userPolys = await getMyObject("userpolygons_" + user )
-  /////switch to UserPolygon
+  //switch to UserPolygon
   if (userPolys && !(userPolys instanceof UserPolygon)){
     userPolys = toClass(userPolys, UserPolygon.prototype);
     return userPolys;
@@ -107,7 +145,8 @@ const getPolygonsInBounds = async(bounds) => {
     if (!(polys instanceof Array)){
       polys = Object.values(polys);
     }
-    let result = polys.map((item) => toClass(item, StreetPolygon.prototype)).filter( (poly) => poly.isInBounds(bounds));
+    // let result = polys.map((item) => toClass(item, StreetPolygon.prototype)).filter( (poly) => poly.isInBounds(bounds));
+    let result = polys.map((item) => toClass(item, StreetPolygon.prototype));
       logger("in bounds: ")
       logger(result)
     return result;
@@ -137,4 +176,4 @@ const getPolygonsByMultipleStreetIds = async (ids) => {
   }, {});
 }
 
-export {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds, getLocationPolygon, updateUserPolygon, removeData, toClass};
+export {removePolygons, storePolygons, storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds, getLocationPolygon, updateUserPolygon, removeData, toClass};

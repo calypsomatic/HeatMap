@@ -24,6 +24,7 @@ export const createNewIntersections = async (location, existing) => {
 
 	//Get all the node info and process it first
 	let resp = await getAndProcessStreetData(currlat, currlon);
+	logger("resp received: ", resp);
 	const ways_by_refNodeId = resp["ways_by_refNodeId"];
 	const nodes_by_wayId = resp["nodes_by_wayId"];
 	const ways_by_Name = resp["ways_by_Name"];
@@ -56,8 +57,12 @@ export const createNewIntersections = async (location, existing) => {
 	function addNodesToMarkers(nodes, labelfunc){
 		nodes.forEach((item, i) => {
 			let node = GetElementsByAttribute(result, "node", "id", item)[0]
-			let ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
-			markers.push({position: ll, label: labelfunc(item, i)});
+			if (node){
+				let ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
+				markers.push({position: ll, label: labelfunc(item, i)});
+			} else {
+				logger("no node ", item);
+			}
 		});
 	}
 
@@ -74,6 +79,11 @@ export const createNewIntersections = async (location, existing) => {
 		let nd = GetElementsByAttribute(result, "node", "id", n)[0];
 		return i + ": " + nd.getAttribute("id") + ": " + nd.getAttribute("lat") + "," + nd.getAttribute("lon");
 	}
+	for (const [key, value] of Object.entries(intersections_by_wayId)) {
+		// logger(value)
+		addNodesToMarkers(value, labelNode);
+}
+return {polygons: resp.polygons, markers: markers};
 
 	let neighbors = {};
 	const numtoteststart = 0;
@@ -86,11 +96,11 @@ export const createNewIntersections = async (location, existing) => {
 	 const ways = ways_by_refNodeId[nodeid].filter(node => node != nodeid);
 		var node = GetElementsByAttribute(result, "node", "id", nodeid)[0]
 		var ll = new L.LatLng(node.getAttribute("lat"), node.getAttribute("lon"));
-		markers.push({position: ll, label: "intersection " + nodeid + " " + node.getAttribute("lat") + "," + node.getAttribute("lon")});
+		// markers.push({position: ll, label: "intersection " + nodeid + " " + node.getAttribute("lat") + "," + node.getAttribute("lon")});
 		logger("getting neighbors for " + nodeid + " with streets: " + ways);
 	neighbors[nodeid] = findSideNodesOnOtherStreetWithMidpoints(result, allNodesInRelation, intersections_by_nodeId, nodeid, wayid)
 	logger("neighbors for " + nodeid, neighbors[nodeid]);
-	// groupEnd();
+	groupEnd();
  }
 
  if (streetrelationids){
@@ -151,32 +161,44 @@ export const createNewIntersections = async (location, existing) => {
 	function labelNodesAndVerts(){
 		group("labelNodesAndVerts");
 
-		addNodesToMarkers(Object.keys(neighbors),labelNode);
+		// addNodesToMarkers(Object.keys(neighbors),labelNode);
 		logger(neighbors);
  	 Object.keys(neighbors).map( (key) => {
  		 neighbors[key].forEach((item, i) => {
  			 		if (item[0]) {
  						 var ll2 = new L.LatLng(item[0].getAttribute("lat"), item[0].getAttribute("lon"));
- 			  		 markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
+						 let exist = markers.findIndex( x => x.position.lat == ll2.lat && x.position.lon == ll2.lon);
+						 if (exist > 0){
+							 logger("exist: ", exist, markers[exist]);
+							 markers[exist].label = markers[exist].label + ", " + key + "'s neighbor: " + item[0].getAttribute("id");
+							 logger(markers[exist]);
+						 // }else {
+							//  markers.push({position: ll2, label: key + "'s neighbor: " + item[0].getAttribute("id")});
+						 }
  					 }
  					 if (item[1] && item[1].length>0 && !isNaN(item[1][0]) && !isNaN(item[1][1])){
  						 var ll3 = new L.LatLng(item[1][0], item[1][1]);
- 			  		 markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
+ 			  		 // markers.push({position: ll3, label: key + "'s midpoint: " + item[1][0] + "," + item[1][1]});
  					 }
 
  		 });
 
  	 })
-		// groupEnd();
+	 logger(markers);
+		groupEnd();
 	}
 
 
-	logger(neighbors);
+	// logger(neighbors);
 
 labelNodesAndVerts();
 
 	 //If I want to try Voronoi
+	 // logger("result: ", result)
+	 // logger("streetrelationids: ", streetrelationids);
+	 // logger("intersections_by_wayId: ", intersections_by_wayId);
 	 // let extrapolygons = processVoronoi(result, streetrelationids, intersections_by_wayId);
+	 // logger(extrapolygons);
 	 // Array.prototype.push.apply(polygons, extrapolygons);
 
 //Used to detect already existing polygons
@@ -198,7 +220,7 @@ labelNodesAndVerts();
 //For each road, make polygons, add if they don't already exist
 //TODO: Is there a more efficient way to do this?
 function createPolygonsForWay(wayid){
-	group("createPolygonsForWay");
+	// group("createPolygonsForWay");
 	var existingwaycorners = existing.polygon.filter( (x) => x.street_id == wayid).map( (x) => x.corners.sort(cornerSort));
 		// logger("creating polygons for ", wayid)
 		// logger(existingwaycorners);
@@ -212,13 +234,13 @@ function createPolygonsForWay(wayid){
 			//TODO better filter?
 			test = test.filter( (x) => !!x && x.length>0)
 			if (test.length > 2 && !existingwaycorners.some(l => cornersMatch(l,test.sort()))){
-				logger("polygon not found, creating new");
+				// logger("polygon not found, creating new");
 				var poly = new StreetPolygon(test, wayNames_by_Id[wayid], wayid)
 				polygons.push(poly);
 			}
 		}
 	}
-	groupEnd();
+	// groupEnd();
 }
 
 //Create all the polygons
@@ -378,9 +400,10 @@ if (streetrelationids){
 			 // polygons.push(testPoly)
 			 storeData(polygons, "polygons");
 			 logger("returning:", polygons);
+			 logger("markers: ", markers);
 				 // logger("returning:", convertPolygonListToColors(polygons));
 			 // return {polygon: convertPolygonListToColors(polygons), markers: []};
-			 return {polygon: polygons, markers: []};
+			 return {polygon: polygons, markers: markers};
 			 groupEnd();
 
 }
@@ -432,7 +455,7 @@ function getColorForPolygon(polygon){
 //Get intersections that are alraedy in database, including those for this user
 export const findExistingIntersections = async (user, location) => {
 
-		// group("findExistingIntersections");
+		group("findExistingIntersections");
 		logger(location);
 
 	var currlat = location.lat;
