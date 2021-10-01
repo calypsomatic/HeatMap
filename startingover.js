@@ -1,14 +1,14 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 import Voronoi from './assets/rhill-voronoi-core.js';
 import StreetPolygon from './StreetPolygon.js';
-import {removePolygons, storePolygons, storeData, removeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds} from './storage.js';
-
+import {getLocationPolygon,addPolygonsWithDate, updateUserPolygon, removePolygons, storePolygons, storeData, removeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds} from './storage.js';
+import {test} from './process-activity.js'
 
 ////////////////////////////////////////////
 //  LONGITUDE == LEFT TO RIGHT, x, (-71) //
 //  LATITUDE == TOP TO BOTTOM, y, (42)  //
 /////////////////////////////////////////
-const debug = true;
+const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -29,9 +29,12 @@ const polygons = [];
 const getAndProcessStreetData = async (currlat, currlon, existing, rad) => {
   // currlat = currlat + rad/2;
   // currlon = currlon - rad/2;
+  // currlat = 42.389930725097656
+  // currlon = -71.1178970336914
   const log = getLogger("getAndProcessStreetData", true);
   const osmapi = "https://www.openstreetmap.org/api/0.6/"
   log.log(rad);
+  log.log(existing)
   var osm =	osmapi + "map?bbox="+(currlon-rad)+","+(currlat-rad)+","+(currlon+rad)+","+(currlat+rad)
 
   log.log("calling ", osm);
@@ -198,7 +201,7 @@ const getAndProcessStreetData = async (currlat, currlon, existing, rad) => {
       //     }
       //   }
 
-    	log.log("testing: ", testsites)
+    	log.log("testsites: ", testsites)
       log.log(streetData);
 
       // xl < xr, yt < yb
@@ -256,7 +259,7 @@ const getAndProcessStreetData = async (currlat, currlon, existing, rad) => {
           //     markers[ind].label = markers[ind].label + " " + item.site.voronoiId;
           //   }
           // });
-            var poly = new StreetPolygon(corners, streetDataDict[item.site.voronoiId][1], streetDataDict[item.site.voronoiId][0], {nodeid:streetDataDict[item.site.voronoiId][2], lat: item.site.y, lon: item.site.x});
+            var poly = new StreetPolygon(corners, streetDataDict[item.site.voronoiId][1], streetDataDict[item.site.voronoiId][0], {lat: item.site.y, lon: item.site.x}, streetDataDict[item.site.voronoiId][2]);
             poly.edge = onedge;
             poly.neighbors = neighbors;
             polys[siteId] = poly;
@@ -297,11 +300,11 @@ existing.polygon.forEach(x => {
   addCoordsToTestSites({y:x._center.lat, x:x._center.lon})
   streetData.push(x);
    polygons.forEach( (y,i) => {
-     if (x._center.nodeid == y._center.nodeid){
+     if (x._id == y._id){
        remove.add(y._id)
        if (!cornersMatch(x._corners, y._corners)){
          remove.add(x._id)
-         tryAgain.add(x._center.nodeid)
+         tryAgain.add(x._id)
        }
      }
      else {
@@ -311,8 +314,8 @@ existing.polygon.forEach(x => {
            if (!x._corners.filter( z => z[0] == c[0] && z[1] == c[1]).length){
              remove.add(x._id)
              remove.add(y._id)
-             tryAgain.add(y._center.nodeid)
-             tryAgain.add(x._center.nodeid)
+             tryAgain.add(y._id)
+             tryAgain.add(x._id)
            }
            skip = true;
            return false;
@@ -324,8 +327,8 @@ existing.polygon.forEach(x => {
              if (!y._corners.filter( z => z[0] == c[0] && z[1] == c[1]).length){
                remove.add(x._id)
                remove.add(y._id)
-               tryAgain.add(y._center.nodeid)
-               tryAgain.add(x._center.nodeid)
+               tryAgain.add(y._id)
+               tryAgain.add(x._id)
              }
              return false;
            }
@@ -355,7 +358,7 @@ let polys2 = []
 
 //Add the newly calculated polys only
 diagram.cells.forEach((item, i) => {
-    if (tryAgain.has(streetDataDict[item.site.voronoiId]._center.nodeid)){
+    if (tryAgain.has(streetDataDict[item.site.voronoiId]._id)){
       let onedge = false;
       let corners = [];
       let neighbors = [];
@@ -377,7 +380,7 @@ diagram.cells.forEach((item, i) => {
           corners.push([he.edge.vb.y,he.edge.vb.x]);
         }
       });
-        var poly = new StreetPolygon(corners, streetDataDict[item.site.voronoiId]._street_name, streetDataDict[item.site.voronoiId]._street_id, {nodeid:streetDataDict[item.site.voronoiId]._center.nodeid, lat: item.site.y, lon: item.site.x});
+        var poly = new StreetPolygon(corners, streetDataDict[item.site.voronoiId]._street_name, streetDataDict[item.site.voronoiId]._street_id, {lat: item.site.y, lon: item.site.x}, streetDataDict[item.site.voronoiId]._id);
         poly.edge = onedge;      // storeData(polygons, "polygons");
 
         poly.neighbors = neighbors;
@@ -394,9 +397,10 @@ let toDisplay = polygons.concat(existing.polygon.filter(x => !remove.has(x._id))
 //////////////////////////////////
 
       // removeData("polygons");
-      removePolygons(remove);
-      storeData(polygons, "polygons");
-      // storePolygons(polygons);
+      // removeData("userpolygons_testuser")
+      // removePolygons(remove);
+      // storeData(polygons, "polygons");
+      storePolygons(polygons);
       return { polygons: toDisplay, markers:markers}
     	log.end();
 
@@ -434,7 +438,7 @@ let toDisplay = polygons.concat(existing.polygon.filter(x => !remove.has(x._id))
         if (coords.x < minlon){
           minlon = coords.x;
         }
-        if (coords.x > maxlon){          // log.log("maxlon: ", maxlon, "->", coords.x)
+        if (coords.x > maxlon){
           maxlon = coords.x;
         }
       }
@@ -531,7 +535,7 @@ export const createNewIntersections = async (location, existing, rad=0.0025) => 
 
   //Get all the node info and process it first
   let resp = await getAndProcessStreetData(currlat, currlon, existing, rad);
-  log.log("resp received: ", resp);
+  log.log("processed street data: ", resp);
 
 //   function addNodesToMarkers(nodes, labelfunc){
 //     nodes.forEach((item, i) => {
@@ -549,8 +553,9 @@ export const createNewIntersections = async (location, existing, rad=0.0025) => 
 //     // log.log(value)
 //     addNodesToMarkers(value, labelNode);
 // }
-
+log.log("completed creating new intersections");
 return {polygons: resp.polygons, markers: resp.markers};
+log.groupEnd();
 }
 
 //TODO Get the colors working.  In progress
@@ -563,10 +568,14 @@ function convertPolygonListToColors(polygons){
 	});
 }
 
-//TODO how to deal with different color schemas etc and also this is bad
 function getColorForPolygon(polygon){
+  return getColorFromDate(polygon._date);
+}
+
+//TODO how to deal with different color schemas etc and also this is bad
+function getColorFromDate(date){
 	// group("getColorForPolygon");
-	let interval = (new Date().getTime() - new Date(polygon._date).getTime())/(1000 * 3600 * 24);
+	let interval = (new Date().getTime() - new Date(date).getTime())/(1000 * 3600 * 24);
 		// log.log("interval: " + interval);
 	let schema = Object.keys(colorSchema).sort();
 		// log.log("schema: " + schema);
@@ -590,7 +599,7 @@ function getColorForPolygon(polygon){
 		}
 		else if( interval < schema[6]){
 			return colorSchema[schema[6]];
-		}
+		}true
 			// return colorSchema[schema[6]];
 			return null;
 			// log.end();
@@ -599,6 +608,22 @@ function getColorForPolygon(polygon){
 
 //Get intersections that are alraedy in database, including those for this user
 export const findExistingIntersections = async (user, location) => {
+  let markers = [];
+
+  /////// // TEMP: /////////
+ //  let datapts = await test();
+ //  console.log(datapts);
+ //  //   markers.push({position: ll, label: item.voronoiId +" ("+item.y +"," + item.x +")"});
+ //  const promises = datapts.map(async (item,i) => {
+ //    // markers.push({position: item[1], label: i})
+ //   const locp = await getLocationPolygon(item[1]);
+ //   return locp
+ // })
+ // const locps = await Promise.all(promises)
+ //  addPolygonsWithDate(user, locps.map((x,i) => [x[0], datapts[i][0]]));
+
+  /////////
+
   const log = getLogger("findExistingIntersections", true);
 	log.log(location);
 
@@ -609,10 +634,14 @@ export const findExistingIntersections = async (user, location) => {
   log.log(bounds);
 
 	let polygons = [];
-  let markers = [];
 	var polyshere = await getPolygonsInBounds(bounds);
   log.log("polyshere:")
   log.log(polyshere);
+  polyshere.forEach((item, i) => {
+      let ll = new L.LatLng(item._center.lat, item._center.lon);
+      markers.push({position: ll, label: item._id});
+  });
+
 	let userpolys = await getUserPolygonsInBounds(user, bounds);
 	if (polyshere && polyshere.length){
 		log.log("userpolys:")
@@ -625,6 +654,14 @@ export const findExistingIntersections = async (user, location) => {
 			log.log("polyshere:")
 			log.log(polyshere);
 		polygons = polygons.concat(polyshere);
+    polygons.forEach((p,i) => {
+      if (p.containsPoint([currlat,currlon])){
+          updateUserPolygon(user, p);
+          polygons[i].color = getColorFromDate(new Date().getTime());
+      }
+    });
+    createNewIntersections(location, {polygon: polygons, markers:markers})
+  	return {polygon: polygons, markers:markers}
 	} else {
     //TODO We have no polys for this location; need to make some quick.
     //In the meantime, one sham poly
@@ -633,10 +670,12 @@ export const findExistingIntersections = async (user, location) => {
                                   [(currlat+0.00025),(currlon+0.00025)],
                                   [(currlat-0.00025),(currlon+0.00025)]]);
     poly.color = "yellow";
-    // polygons.push(poly)
+    createNewIntersections(location, {polygon: [], markers:markers})
+    polygons.push(poly)
+    return {polygon: polygons, markers:markers}
   }
+  // removeData("userpolygons_" + user);
 
-	return {polygon: polygons, markers:markers}
 	log.end();
 
 }

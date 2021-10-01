@@ -7,7 +7,7 @@ import {createNewIntersections, findExistingIntersections} from './startingover.
 import {storeData, getMyObject, getLocationPolygon, updateUserPolygon, removeData} from './storage.js';
 import StreetPolygon from './StreetPolygon.js';
 
-const debug = true;
+const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -42,6 +42,7 @@ function MultiPoly(polygons) {
     log.log(polygons);
     return polygons.polygons.map((poly,i) => {
                 let color = poly.color ? poly.color : "dark grey";
+                // let color = colorSchema[i%6];
                 let corners = poly.corners ? poly.corners : poly._polygon.corners;
                 return <Polygon fillColor = {color} positions={corners} key={poly.id} stroke={false}/>
             });
@@ -103,52 +104,53 @@ function PolyMap(){
             .then(res => {
               const log = getLogger("MapView.findExistingIntersections", true);
               log.log(res);
-            // setPolygons(res.polygon)
-            setMarkers(res.markers);
+            setPolygons(res.polygon)
+            // setMarkers(res.markers);
             //if there are nearby intersections that aren't in the db yet, create them
-            createNewIntersections(currentLocation, res)
-            .then(resnew => {
-              const log = getLogger("MapView.createNewIntersections", true);
-              // setPolygons(res.polygon.concat(resnew.polygons));
-              log.log(resnew)
-              setPolygons(resnew.polygons);
-              // setMarkers(resnew.markers);
-              log.end();
-            })
+            //You know what, this isn't needed up here, it should just be done on the backend
+            // createNewIntersections(currentLocation, res)
+            // .then(resnew => {
+            //   const log = getLogger("MapView.createNewIntersections", true);
+            //   // setPolygons(res.polygon.concat(resnew.polygons));
+            //   // log.log(resnew)
+            //   // setPolygons(resnew.polygons);
+            //   // setMarkers(resnew.markers);
+            //   log.end();
+            // })
             //Gets the polygon where you are right now
-            getLocationPolygon(currentLocation).then( pres =>{
-              const log = getLogger("getLocationPolygon", false);
-              log.log(pres);
-              if (pres && pres.length){
-                let localp = pres[0];
-                if (!(localp instanceof StreetPolygon)){
-                  localp = toClass(localp, StreetPolygon.prototype);
-                }
-                //update this polygon with current date and assign to user
-                // updateUserPolygon(user, localp);
-                log.end();
-              } else {
-                //TODO make new polygon?
-              }
-            });
+            // getLocationPolygon(currentLocation).then( pres =>{
+            //   const log = getLogger("getLocationPolygon", false);
+            //   log.log(pres);
+            //   if (pres && pres.length){
+            //     let localp = pres[0];
+            //     if (!(localp instanceof StreetPolygon)){
+            //       localp = toClass(localp, StreetPolygon.prototype);
+            //     }
+            //     //update this polygon with current date and assign to user
+            //     updateUserPolygon(user, localp);
+            //     log.end();
+            //   } else {
+            //     //TODO make new polygon?
+            //   }
+            // });
             log.end();
         });
       });
     }, [])
     log.log(polygons, bounds, loc);
-    // return (
-    //   <>
-    //     <BigPoly polygons={polygons} loc={loc} zoom={zoom} bounds={bounds}/>
-    //     <MultiPoly polygons={polygons}/>
-    //     <Markers markers={markers}/>
-    //   </>
-    // )
     return (
       <>
+        <BigPoly polygons={polygons} loc={loc} zoom={zoom} bounds={bounds}/>
         <MultiPoly polygons={polygons}/>
         <Markers markers={markers}/>
       </>
     )
+    // return (
+    //   <>
+    //     <MultiPoly polygons={polygons}/>
+    //     <Markers markers={markers}/>
+    //   </>
+    // )
     // return null
 }
 

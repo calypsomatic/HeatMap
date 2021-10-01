@@ -3,7 +3,7 @@ import StreetPolygon from './StreetPolygon.js';
 import PolygonWithDate from './PolygonWithDate.js';
 import UserPolygon from './UserPolygon.js';
 
-const debug = true;
+const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -23,9 +23,11 @@ const storeData = async (values, key) => {
 const removePolygons = async(toRemove) => {
   logger("removing polygons: ", toRemove);
   let existing = await getMyObject("polygons");
-  existing = Object.values(existing).filter( (x) => !toRemove.has(x._id));
-  const jsonValue = JSON.stringify(existing)
-  await AsyncStorage.setItem('@polygons', jsonValue)
+  if (existing){
+    existing = Object.values(existing).filter( (x) => !toRemove.has(x._id));
+    const jsonValue = JSON.stringify(existing)
+    await AsyncStorage.setItem('@polygons', jsonValue)
+  }
 }
 
 const storePolygons = async(values) => {
@@ -34,9 +36,9 @@ const storePolygons = async(values) => {
   logger("existing: ", existing);
   if (existing){
     let remove = new Set()
-    let valueKeys = values.map( x => x._center.nodeid)
+    let valueKeys = values.map( x => x._id)
     for (const [key, x] of Object.entries(existing)) {
-      if (valueKeys.includes(x._center.nodeid)){
+      if (valueKeys.includes(x._id)){
         remove.add(x._id)
       }
   }
@@ -77,10 +79,25 @@ const updateUserPolygon = async (user, polygon) => {
   if (!userPolys){
     userPolys = new UserPolygon(user);
   }
-    userPolys.addOrUpdatePolygon(polygon);
+    polygon = userPolys.addOrUpdatePolygon(polygon);
+    logger("has polygon changed? ", polygon);
       logger("updating userpolygon:", userPolys);
     storeData(userPolys, "userpolygons_"+user);
+    return polygon;
     groupEnd();
+}
+
+const addPolygonsWithDate = async (user, polygons) => {
+  let userPolys = await getUserPolygons(user);
+  if (!userPolys){
+    userPolys = new UserPolygon(user);
+  }
+  polygons.forEach((item, i) => {
+    if (item && item[0] && item[1]){
+      userPolys.addPolygonWithDate(item[0], item[1])
+    }
+  });
+  storeData(userPolys, "userpolygons_"+user);
 }
 
 //TODO is there a better way to do this?
@@ -105,7 +122,6 @@ const getLocationPolygon = async(loc) => {
   let currlon = loc.lng;
 	let bounds = [(currlon-minrad),(currlat-minrad),(currlon+minrad),(currlat+minrad)];
   let nearby = await getPolygonsInBounds(bounds);
-    logger(nearby);
   return nearby.filter( poly => poly.containsPoint([loc.lat,loc.lng]));
   groupEnd();
 }
@@ -147,8 +163,8 @@ const getPolygonsInBounds = async(bounds) => {
     }
     // let result = polys.map((item) => toClass(item, StreetPolygon.prototype)).filter( (poly) => poly.isInBounds(bounds));
     let result = polys.map((item) => toClass(item, StreetPolygon.prototype));
-      logger("in bounds: ")
-      logger(result)
+      // logger("in bounds: ")
+      // logger(result)
     return result;
     log.groupEnd();
 }
@@ -176,4 +192,4 @@ const getPolygonsByMultipleStreetIds = async (ids) => {
   }, {});
 }
 
-export {removePolygons, storePolygons, storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds, getLocationPolygon, updateUserPolygon, removeData, toClass};
+export {addPolygonsWithDate, removePolygons, storePolygons, storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds, getLocationPolygon, updateUserPolygon, removeData, toClass};
