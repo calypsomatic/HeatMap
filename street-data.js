@@ -1,7 +1,9 @@
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 // import { create, all } from 'mathjs';
+import Voronoi from './assets/rhill-voronoi-core.js';
+import StreetPolygon from './StreetPolygon.js';
 
-const debug = false;
+const debug = true;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -18,6 +20,7 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
  	var str = await resp.text();
 
 	var result = new window.DOMParser().parseFromString(str, "text/xml");
+	logger("result: ", result);
 
 	var ways_by_refNodeId = {}
 	var nodes_by_wayId = {}
@@ -59,6 +62,8 @@ export const getAndProcessStreetData = async (currlat, currlon) => {
     allNodesInRelation[item] = refnodes;
   }
 });
+
+logger(allNodesInRelation);
 
 ///////////////////////////////////
 function oldway(){
@@ -176,11 +181,105 @@ function oldway(){
     intersection_coords[key] = coords;
   }
 
+	// let diff = 0.000025;
+	// let test = "[";
+	// let testp = "{ \"type\": \"Feature\",\"properties\": {},\"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[";
+	let testsites = [];
+	let minlon = 1000;
+	let maxlon = -1000;
+	let minlat = 1000;
+	let maxlat = -1000;
+
+function getCoordsForNode(nodeid){
+	let node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
+	let x = parseFloat(node.getAttribute("lat"));
+	let y = parseFloat(node.getAttribute("lon"));
+	return {x:x, y:y};
+}
+
+function addCoordsToTestSites(coords){
+	testsites.push(coords);
+	if (coords.x < minlat){
+		minlat = coords.x;
+	} else if (coords.x > maxlat){
+		maxlat = coords.x;
+	}
+	if (coords.y < minlon){
+		minlon = coords.y;
+	} else if (coords.y > maxlon){
+		maxlon = coords.y;
+	}
+}
+
+function addNodeToTestSites(nodeid){
+	let coords = getCoordsForNode(nodeid);
+	addCoordsToTestSites(coords);
+}
+
+for (const [key, value] of Object.entries(intersections_by_wayId)) {
+		if (value.length == 1){
+			addNodeToTestSites(value[0]);
+		} else {
+			for (let i = 0; i < value.length - 1; i++){
+					let first = getCoordsForNode(value[i]);
+					let second = getCoordsForNode(value[i+1]);
+					let mid = calculateMidpoint(first, second, 0);
+					// logger(mid);
+					if (!isNaN(mid.x) && !isNaN(mid.y)){
+						addCoordsToTestSites(mid);
+					}
+			}
+		}
+	}
+
+
+	function calculateMidpoint(node1, node2, sign){
+			 const dist = sign == 0 ? 0.0005 : -0.0005;
+			 const linevector = [node2.x-node1.x, node2.y-node1.y];
+			 const lvsize = Math.sqrt(linevector[0]*linevector[0] + linevector[1]*linevector[1]);
+			 const lvnormal = [linevector[0]/lvsize,linevector[1]/lvsize];
+			 return {x:node1.x+dist*lvnormal[0],y:node1.y+dist*lvnormal[1]};
+		}
+
+// for (const [key, value] of Object.entries(intersections_by_wayId)) {
+// 	value.forEach(nodeid =>{
+// 		addNodeToTestSites(nodeid);
+// 	// 	testp += "[" + (y-diff) + "," + (x-diff) + "]" + "," + "[" + (y+diff) + "," + (x-diff) + "]" + "," + "[" + (y+diff) + "," + (x+diff)+ "]" + "," + "[" + (y-diff) + "," + (x+diff) + "]" + "," + "[" + (y-diff) + "," + (x-diff)+ "]" + "]]}}";
+// 	// 	logger(testp);
+// 	// 	testp = "{ \"type\": \"Feature\",\"properties\": {},\"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[";
+// 	// 	test += "[" + y + "," + x + "],"
+// 	})
+// }
+	logger("testing: ", testsites)
+	var bbox = {xl: minlat, xr: maxlat, yt: minlon, yb: maxlon};
+	logger(bbox);
+	var voronoi = new Voronoi();
+	var diagram = voronoi.compute(testsites, bbox);
+	logger(diagram);
+
+	let polygons = []
+	diagram.cells.forEach((item, i) => {
+		// item.halfedges.forEach((he, j) => {
+		// 	console.log(he.edge.va);
+		// });
+		if (i != 0){
+			let corners = item.halfedges.map( (cell) => [[cell.edge.va.x, cell.edge.va.y],[cell.edge.vb.x, cell.edge.vb.y]]);
+			var poly = new StreetPolygon(corners.flat(), i, i);
+			polygons.push(poly);
+		}
+	});
+	//
+	// console.log(polygons);
+
+	// test += "]";
+	// logger(test);
+
+
   var allNodes = Object.values(allNodesInRelation).flat();
 
   return { ways_by_refNodeId: ways_by_refNodeId, nodes_by_wayId: nodes_by_wayId, ways_by_Name: ways_by_Name,
     wayNames_by_Id:wayNames_by_Id, intersections_by_wayId: intersections_by_wayId, allNodesInRelation: allNodesInRelation,
-  allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId}
+  allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId, polygons: polygons}
 	// allNodes: allNodes, result: result, intersections_by_nodeId: intersections_by_nodeId, streetrelationids: streetrelationids}
 	groupEnd();
 }

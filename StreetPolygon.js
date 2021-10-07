@@ -2,16 +2,17 @@ var uuid = require('react-native-uuid');
 
 //This is a hack to make sure an object is an instance of StreetPolygon in other classes
 export const createPolygon = function createPolygon(obj) {
-  const poly = new StreetPolygon(obj._corners, obj._street_name, obj._street_id, obj._id);
+  const poly = new StreetPolygon(obj._corners, obj._street_name, obj._street_id, obj._center, obj._id);
   return Object.assign(poly, obj);
 };
 
 export default class StreetPolygon {
-  constructor(corners, street_name, street_id, id){
+  constructor(corners, street_name, street_id, center, id){
     this._corners = this.sort_corners(corners);
     this._street_name = street_name;
     this._street_id = street_id;
     this._nvert = corners.length;
+    this._center = center;
     //TEMP
     this._id = id || uuid.v4();
 

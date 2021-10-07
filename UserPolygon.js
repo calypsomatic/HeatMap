@@ -8,10 +8,11 @@ export default class UserPolygon{
 
   addOrUpdatePolygon(polygon){
     if (!this._polygons[polygon.id]){
-      this.addPolygonWithDate(polygon, new Date());
+      polygon = this.addPolygonWithDate(polygon, new Date());
     } else {
-      this.updatePolygonDate(polygon);
+      polygon = this.updatePolygonDate(polygon);
     }
+    return polygon;
   }
 
   addPolygonWithColor(polygon, date){
@@ -21,10 +22,12 @@ export default class UserPolygon{
   addPolygonWithDate(polygon, date){
     var pdate = new PolygonWithDate(polygon, date);
     this._polygons[polygon.id] = pdate;
+    return pdate;
   }
 
   updatePolygonDate(polygon){
     this._polygons[polygon.id]._date = new Date();
+    return this._polygons[polygon.id];
   }
 
   get polygons() {

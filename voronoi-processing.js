@@ -2,7 +2,7 @@ import Voronoi from './assets/rhill-voronoi-core.js';
 import { GetElementsByAttribute, getElementsValueByXPath } from './xmlfncs.js';
 import StreetPolygon from './StreetPolygon.js';
 
-export function processVoronoi(xmldoc, streetrelationids, intersections_by_wayId, polygons){
+export function processVoronoi2(xmldoc, streetrelationids, intersections_by_wayId, polygons){
 
 var midpoints = []
 var polygons = []

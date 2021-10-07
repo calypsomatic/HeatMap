@@ -12,12 +12,52 @@ const storeData = async (values, key) => {
   group("store Data:");
   try {
       logger("storing: ", values, key);
-    const jsonValue = JSON.stringify(values)
-    await AsyncStorage.mergeItem('@' + key, jsonValue)
+      const jsonValue = JSON.stringify(values)
+      await AsyncStorage.mergeItem('@' + key, jsonValue)
   } catch (e) {
     logger(e);
   }
   groupEnd();
+}
+
+const removePolygons = async(toRemove) => {
+  logger("removing polygons: ", toRemove);
+  let existing = await getMyObject("polygons");
+  if (existing){
+    existing = Object.values(existing).filter( (x) => !toRemove.has(x._id));
+    const jsonValue = JSON.stringify(existing)
+    await AsyncStorage.setItem('@polygons', jsonValue)
+  }
+}
+
+const storePolygons = async(values) => {
+  logger("storing polygons: ", values);
+  let existing = await getMyObject("polygons");
+  logger("existing: ", existing);
+  if (existing){
+    let remove = new Set()
+    let valueKeys = values.map( x => x._id)
+    for (const [key, x] of Object.entries(existing)) {
+      if (valueKeys.includes(x._id)){
+        remove.add(x._id)
+      }
+  }
+  existing = Object.values(existing).filter( (x) => !remove.has(x._id));
+  logger("storing: ", existing.concat(values));
+  const jsonValue = JSON.stringify(existing.concat(values))
+  await AsyncStorage.setItem('@polygons', jsonValue)
+}
+else {
+    storeData(values, "polygons");
+  }
+}
+
+function cornersMatch(corners1, corners2){
+ if (corners1.length != corners2.length){
+   return false;
+ }
+ return corners1.every((c, index) =>
+   c.every((val, i) => val === corners2[index][i]));
 }
 
 const removeData = async (key)  => {
@@ -39,10 +79,25 @@ const updateUserPolygon = async (user, polygon) => {
   if (!userPolys){
     userPolys = new UserPolygon(user);
   }
-    userPolys.addOrUpdatePolygon(polygon);
+    polygon = userPolys.addOrUpdatePolygon(polygon);
+    logger("has polygon changed? ", polygon);
       logger("updating userpolygon:", userPolys);
     storeData(userPolys, "userpolygons_"+user);
+    return polygon;
     groupEnd();
+}
+
+const addPolygonsWithDate = async (user, polygons) => {
+  let userPolys = await getUserPolygons(user);
+  if (!userPolys){
+    userPolys = new UserPolygon(user);
+  }
+  polygons.forEach((item, i) => {
+    if (item && item[0] && item[1]){
+      userPolys.addPolygonWithDate(item[0], item[1])
+    }
+  });
+  storeData(userPolys, "userpolygons_"+user);
 }
 
 //TODO is there a better way to do this?
@@ -67,7 +122,6 @@ const getLocationPolygon = async(loc) => {
   let currlon = loc.lng;
 	let bounds = [(currlon-minrad),(currlat-minrad),(currlon+minrad),(currlat+minrad)];
   let nearby = await getPolygonsInBounds(bounds);
-    logger(nearby);
   return nearby.filter( poly => poly.containsPoint([loc.lat,loc.lng]));
   groupEnd();
 }
@@ -75,7 +129,7 @@ const getLocationPolygon = async(loc) => {
 const getUserPolygons = async(user) => {
   group("getUserPolygons");
   let userPolys = await getMyObject("userpolygons_" + user )
-  /////switch to UserPolygon
+  //switch to UserPolygon
   if (userPolys && !(userPolys instanceof UserPolygon)){
     userPolys = toClass(userPolys, UserPolygon.prototype);
     return userPolys;
@@ -107,9 +161,10 @@ const getPolygonsInBounds = async(bounds) => {
     if (!(polys instanceof Array)){
       polys = Object.values(polys);
     }
-    let result = polys.map((item) => toClass(item, StreetPolygon.prototype)).filter( (poly) => poly.isInBounds(bounds));
-      logger("in bounds: ")
-      logger(result)
+    // let result = polys.map((item) => toClass(item, StreetPolygon.prototype)).filter( (poly) => poly.isInBounds(bounds));
+    let result = polys.map((item) => toClass(item, StreetPolygon.prototype));
+      // logger("in bounds: ")
+      // logger(result)
     return result;
     log.groupEnd();
 }
@@ -137,4 +192,4 @@ const getPolygonsByMultipleStreetIds = async (ids) => {
   }, {});
 }
 
-export {storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds, getLocationPolygon, updateUserPolygon, removeData, toClass};
+export {addPolygonsWithDate, removePolygons, storePolygons, storeData, getMyObject, getPolygonsInBounds, getPolygonsByMultipleStreetIds, getUserPolygonsInBounds, getLocationPolygon, updateUserPolygon, removeData, toClass};
