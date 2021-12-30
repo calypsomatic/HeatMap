@@ -1,29 +1,51 @@
 {
-  "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "eject": "expo eject"
+    "iterate": "rm -rf node_modules/expo-leaflet && yarn upgrade expo-leaflet"
   },
   "dependencies": {
-    "@react-leaflet/core": "^1.0.2",
-    "@react-native-community/async-storage": "^1.12.1",
-    "@react-native-community/geolocation": "^2.0.2",
-    "expo": "^39.0.5",
-    "expo-status-bar": "^1.0.4",
-    "leaflet": "^1.7.1",
-    "react": "^16.14.0",
-    "react-dom": "^16.14.0",
-    "react-leaflet": "^3.1.0",
-    "react-native": "https://github.com/expo/react-native/archive/sdk-39.0.2.tar.gz",
-    "react-native-uuid": "^1.4.9",
-    "react-native-web": "^0.17.1",
-    "react-native-webview-leaflet": "^5.0.2"
+    "@react-leaflet/core": "1.0.2",
+    "@react-native-async-storage/async-storage": "^1.15.14",
+    "expo": "^41.0.0",
+    "expo-asset": "~8.3.1",
+    "expo-file-system": "~11.0.2",
+    "expo-leaflet": "^1.0.2",
+    "expo-location": "~12.0.4",
+    "expo-permissions": "~12.0.1",
+    "leaflet": "1.7.1",
+    "lodash": "4.17.21",
+    "react": "17.0.2",
+    "react-dom": "17.0.2",
+    "react-leaflet": "3.1.0",
+    "react-measure": "^2.5.2",
+    "react-native": "https://github.com/expo/react-native/archive/sdk-41.0.0.tar.gz",
+    "react-native-uuid": "^2.0.1",
+    "react-native-web": "~0.13.12",
+    "react-native-webview": "11.2.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.15.0"
+    "@babel/core": "^7.14.3",
+    "@types/leaflet": "^1.7.1",
+    "@types/lodash": "^4.14.170",
+    "@types/node": "^15.6.2",
+    "@types/react": "~17.0.9",
+    "@types/react-dom": "~17.0.6",
+    "@types/react-native": "~0.63.52",
+    "babel-preset-expo": "8.3.0",
+    "typescript": "~4.3.2"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not op_mini all"
+  ],
+  "resolutions": {
+    "react": "17.0.2",
+    "react-dom": "17.0.2",
+    "react-native": "https://github.com/expo/react-native/archive/sdk-41.0.0.tar.gz"
   },
   "private": true
 }

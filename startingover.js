@@ -32,6 +32,7 @@ const getAndProcessStreetData = async (currlat, currlon, existing, rad) => {
   // currlat = 42.389930725097656
   // currlon = -71.1178970336914
   const log = getLogger("getAndProcessStreetData", true);
+  log.log(currlat, currlon);
   const osmapi = "https://www.openstreetmap.org/api/0.6/"
   log.log(rad);
   log.log(existing)
@@ -530,8 +531,8 @@ export const createNewIntersections = async (location, existing, rad=0.0025) => 
   log.log("existing:");
   log.log(existing);
 
-  const currlat = location.lat;
-  const currlon = location.lng;
+  const currlat = location.coords.latitude;
+  const currlon = location.coords.longitude;
 
   //Get all the node info and process it first
   let resp = await getAndProcessStreetData(currlat, currlon, existing, rad);
@@ -575,7 +576,7 @@ function getColorForPolygon(polygon){
 //TODO how to deal with different color schemas etc and also this is bad
 function getColorFromDate(date){
 	// group("getColorForPolygon");
-	let interval = (new Date().getTime() - new Date(date).getTime())/(1000 * 3600 * 24);
+	let interval = Math.floor((new Date().getTime() - new Date(date).getTime())/(1000 * 3600 * 24));
 		// log.log("interval: " + interval);
 	let schema = Object.keys(colorSchema).sort();
 		// log.log("schema: " + schema);
@@ -610,26 +611,26 @@ function getColorFromDate(date){
 export const findExistingIntersections = async (user, location) => {
   let markers = [];
 
-  /////// // TEMP: /////////
- //  let datapts = await test();
- //  console.log(datapts);
- //  //   markers.push({position: ll, label: item.voronoiId +" ("+item.y +"," + item.x +")"});
- //  const promises = datapts.map(async (item,i) => {
- //    // markers.push({position: item[1], label: i})
- //   const locp = await getLocationPolygon(item[1]);
- //   return locp
- // })
- // const locps = await Promise.all(promises)
- //  addPolygonsWithDate(user, locps.map((x,i) => [x[0], datapts[i][0]]));
+  ///// // TEMP: /////////
+//   let datapts = await test();
+//   console.log(datapts);
+//   //   markers.push({position: ll, label: item.voronoiId +" ("+item.y +"," + item.x +")"});
+//   const promises = datapts.map(async (item,i) => {
+//     // markers.push({position: item[1], label: i})
+//    const locp = await getLocationPolygon(item[1]);
+//    return locp
+//  })
+//  const locps = await Promise.all(promises)
+//   addPolygonsWithDate(user, locps.map((x,i) => [x[0], datapts[i][0]]));
 
-  /////////
+  ///////
 
   const log = getLogger("findExistingIntersections", true);
 	log.log(location);
 
   const rad = 0.0025;
-	var currlat = location.lat;
-	var currlon = location.lng;
+	var currlat = location.coords.latitude;
+	var currlon = location.coords.longitude;
 	let bounds = [(currlon-rad),(currlat-rad),(currlon+rad),(currlat+rad)];
   log.log(bounds);
 
