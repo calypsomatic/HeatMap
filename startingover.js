@@ -8,7 +8,10 @@ import {test} from './process-activity.js'
 //  LONGITUDE == LEFT TO RIGHT, x, (-71) //
 //  LATITUDE == TOP TO BOTTOM, y, (42)  //
 /////////////////////////////////////////
-const debug = false;
+var xpath = require('xpath')
+  , dom = require('xmldom').DOMParser
+
+const debug = true;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -52,25 +55,36 @@ const getAndProcessStreetData = async (currlat, currlon, existing, rad) => {
 	var allNodesInRelation = {}
 
   //Parse osm result
-  var result = new window.DOMParser().parseFromString(str, "text/xml");
+
+  // const dom = new JSDOM();
+  // var result = dom.parseFromString(str, "text/xml");
+  // var result = require('xmldom').DOMParser().parseFromString(str, "text/xml");
+  // var result = new XMLParser().parseFromString(str);
+  var result = new dom().parseFromString(str)
+  // var result = new window.DOMParser().parseFromString(str, "text/xml");
   log.log("result: ", result);
 
   // A simple function to remove duplicate items
   let removeDuplicates = arr => arr.filter((item, index) => arr.indexOf(item) === index);
 
   //Every street (way) has its own id
-  let wayids = getElementsValueByXPath('//way/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../@id', result);
+  // let wayids = getElementsValueByXPath('//way/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../@id', result);
+  // let wayids = xpath.select('//way/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../@id', result);
+  let wayids = xpath.select('//way/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../@id', result).map((n)=> n.nodeValue);
   log.log("wayids: ", wayids);
 
-  let testways = getElementsValueByXPath('//way/tag[@k="highway"]/../tag[@k="name"]/../@id', result);
+  // let testways = getElementsValueByXPath('//way/tag[@k="highway"]/../tag[@k="name"]/../@id', result);
+  let testways = xpath.select('//way/tag[@k="highway"]/../tag[@k="name"]/../@id', result).map((n)=> n.nodeValue);
   log.log("testways: ", testways);
 
   var usekey = null;
   //TODO These two different keys are a real mess, deal with them some day
   wayids.forEach((item, i) => {
     var nodegroups = {}
-    var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
-    var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
+    // var maybename = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result);
+    var maybename = xpath.select('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/@v', result).map(n => n.nodeValue);
+    // var refnodes = getElementsValueByXPath('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result);
+    var refnodes = xpath.select('//way[@id="'+item+'"]/tag[@k="highway" and not(@v="service")]/../tag[@k="name"]/../nd/@ref', result).map(n => n.nodeValue);
     if (maybename.length > 0){
       if (!wayNames_by_Id[item]){
         wayNames_by_Id[item] = maybename[0];
@@ -92,6 +106,8 @@ const getAndProcessStreetData = async (currlat, currlon, existing, rad) => {
       allNodesInRelation[item] = refnodes;
     }
   });
+
+  log.log("allNodesInRelation:", allNodesInRelation);
 
     for (const [key, value] of Object.entries(allNodesInRelation)) {
       value.forEach((child, i) => {
@@ -131,16 +147,17 @@ const getAndProcessStreetData = async (currlat, currlon, existing, rad) => {
     }
 
     intersections_by_nodeId = Object.fromEntries(Object.entries(intersections_by_nodeId).filter(([k,v]) => !possibledupes.includes(k)));
-
     //We need this to preserve order from nodes_by_wayId
     for (const [key, value] of Object.entries(allNodesInRelation)) {
-      var wayixs = value.filter(node => node in intersections_by_nodeId);
-  		let coords = wayixs.map( (nodeid) => {
-  			let node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
+        let v = value.filter(node => node in intersections_by_nodeId);
+  		let coords = v.map( (nodeid) => {
+        let node = xpath.select('//node[@id="'+nodeid+'"]', result)[0];
+        // let node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
   			return {id: nodeid, coord: {y:parseFloat(node.getAttribute("lat")), x:parseFloat(node.getAttribute("lon"))}};
   		});
+     
   		if (coords.length < 3){
-  			intersections_by_wayId[key] = wayixs;
+  			intersections_by_wayId[key] = v;
   		}
   		else {
   			let sorted = sortIntoIds(coords);
@@ -160,7 +177,13 @@ const getAndProcessStreetData = async (currlat, currlon, existing, rad) => {
         value.push(allNodesInRelation[key][idx+1]);
       }
       let coords = value.map( (nodeid) => {
-        let node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
+        if (nodeid.nodeValue){
+          nodeid = nodeid.nodeValue;
+        }
+        // var wayixs = value.filter(node => node in intersections_by_nodeId).map(n => n.nodeValue);
+          let node = xpath.select('//node[@id="'+nodeid+'"]', result)[0];  
+
+        // let node = GetElementsByAttribute(result, "node", "id", nodeid)[0];
         return {id: nodeid, coord: {y:parseFloat(node.getAttribute("lat")), x:parseFloat(node.getAttribute("lon"))}};
       });
       intersection_coords[key] = coords;
@@ -389,10 +412,19 @@ diagram.cells.forEach((item, i) => {
     }
 });
 
+log.log(polys2);
 //These are the new polygons to store
 polygons = polygons.filter( x => !remove.has(x._id)).concat(polys2)
+log.log(polygons)
+// polygons.forEach((p) => {
+//   p.color = "blue";
+// })
 //For displaying along with existing
+// existing.polygon.forEach((p) => {
+//   p.color = "blue";
+// })
 let toDisplay = polygons.concat(existing.polygon.filter(x => !remove.has(x._id)))
+log.log(toDisplay)
 
 
 //////////////////////////////////
@@ -527,7 +559,7 @@ let toDisplay = polygons.concat(existing.polygon.filter(x => !remove.has(x._id))
 }
 
 export const createNewIntersections = async (location, existing, rad=0.0025) => {
-  const log = getLogger("createNewIntersections", true);
+  const log = getLogger("createNewIntersections", false);
   log.log("existing:");
   log.log(existing);
 
@@ -625,7 +657,7 @@ export const findExistingIntersections = async (user, location) => {
 
   ///////
 
-  const log = getLogger("findExistingIntersections", true);
+  const log = getLogger("findExistingIntersections", false);
 	log.log(location);
 
   const rad = 0.0025;
@@ -642,7 +674,8 @@ export const findExistingIntersections = async (user, location) => {
       let ll = new L.LatLng(item._center.lat, item._center.lon);
       markers.push({position: ll, label: item._id});
   });
-
+  log.log("polyshere:")
+  log.log(polyshere);
 	let userpolys = await getUserPolygonsInBounds(user, bounds);
 	if (polyshere && polyshere.length){
 		log.log("userpolys:")

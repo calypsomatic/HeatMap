@@ -1,19 +1,15 @@
 import { ExpoLeaflet, MapLayer, MapShape } from 'expo-leaflet'
 import * as Location from 'expo-location'
-import {Polygon} from 'react-leaflet';
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  Button,
   Platform,
   SafeAreaView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native'
-import {createNewIntersections, findExistingIntersections} from './startingover.js';
-import type { LatLngExpression } from 'leaflet'
+import {findExistingIntersections} from './startingover.js';
 
 const mapLayers: Array<MapLayer> = [
   {
@@ -73,6 +69,7 @@ const styles = StyleSheet.create({
   },
 })
 
+let colorSchema = {0: "grey", 1: "blue", 2:"red", 3:"green", 4:"orange", 5:"purple"}
 function MultiPoly(polygons) {
   if (polygons && polygons.length){
     return polygons.map((poly,i) => {
@@ -147,6 +144,8 @@ export default function App() {
       }
 
       let location = await Location.getCurrentPositionAsync({})
+      // location.coords.latitude = location.coords.latitude + (rad/2);
+      // location.coords.longitude = location.coords.longitude + (rad/2);
         setMapCenterPosition({
           lat: location.coords.latitude,
           lng: location.coords.longitude,
@@ -156,9 +155,10 @@ export default function App() {
 
       findExistingIntersections("testuser", location).then(res => {
         setPolygons(res.polygon);
-        let test = BigPoly(bounds, res.polygon);
+        // let test = BigPoly(bounds, res.polygon);
         let test2 = MultiPoly(res.polygon);
-        setMapShapes([test].concat(test2));
+        // setMapShapes([test].concat(test2));
+        setMapShapes(test2);
         })
 
     }
@@ -183,17 +183,17 @@ export default function App() {
           maxZoom={20}
           onMessage={(message) => {
             switch (message.tag) {
-              case 'onMapMarkerClicked':
-                Alert.alert(
-                  `Map Marker Touched, ID: ${message.mapMarkerId || 'unknown'}`,
-                )
-                break
-              case 'onMapClicked':
-                Alert.alert(
-                  `Map Touched at:`,
-                  `${message.location.lat}, ${message.location.lng}`,
-                )
-                break
+              // case 'onMapMarkerClicked':
+              //   Alert.alert(
+              //     `Map Marker Touched, ID: ${message.mapMarkerId || 'unknown'}`,
+              //   )
+              //   break
+              // case 'onMapClicked':
+              //   Alert.alert(
+              //     `Map Touched at:`,
+              //     `${message.location.lat}, ${message.location.lng}`,
+              //   )
+              //   break
               case 'onMoveEnd':
                 setMapCenterPosition(message.mapCenter)
                 break
@@ -204,7 +204,6 @@ export default function App() {
                 if (['onMove'].includes(message.tag)) {
                   return
                 }
-                // console.log(message)
             }
           }}
           zoom={zoom}

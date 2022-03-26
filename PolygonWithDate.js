@@ -1,5 +1,4 @@
 import {StreetPolygon, createPolygon} from './StreetPolygon.js';
-import toClass from './storage.js';
 
 export default class PolygonWithDate{
   constructor(polygon, date){

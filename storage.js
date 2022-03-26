@@ -3,7 +3,7 @@ import StreetPolygon from './StreetPolygon.js';
 import PolygonWithDate from './PolygonWithDate.js';
 import UserPolygon from './UserPolygon.js';
 
-const debug = false;
+const debug = true;
 var logger = debug ? console.log.bind(console) : function () {};
 var group = debug ? console.group.bind(console) : function () {};
 var groupEnd = debug ? console.groupEnd.bind(console) : function () {};
@@ -12,8 +12,10 @@ const storeData = async (values, key) => {
   group("store Data:");
   try {
       logger("storing: ", values, key);
+      logger(typeof(values));
       const jsonValue = JSON.stringify(values)
-      await AsyncStorage.mergeItem('@' + key, jsonValue)
+      // await AsyncStorage.mergeItem('@' + key, jsonValue)
+      await AsyncStorage.setItem('@' + key, jsonValue)
   } catch (e) {
     logger(e);
   }
@@ -41,13 +43,13 @@ const storePolygons = async(values) => {
       if (valueKeys.includes(x._id)){
         remove.add(x._id)
       }
+    }
+    existing = Object.values(existing).filter( (x) => !remove.has(x._id));
+    logger("storing: ", existing.concat(values));
+    const jsonValue = JSON.stringify(existing.concat(values))
+    await AsyncStorage.setItem('@polygons', jsonValue)
   }
-  existing = Object.values(existing).filter( (x) => !remove.has(x._id));
-  logger("storing: ", existing.concat(values));
-  const jsonValue = JSON.stringify(existing.concat(values))
-  await AsyncStorage.setItem('@polygons', jsonValue)
-}
-else {
+  else {
     storeData(values, "polygons");
   }
 }

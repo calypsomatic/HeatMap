@@ -14,7 +14,8 @@ export default class StreetPolygon {
     this._nvert = corners.length;
     this._center = center;
     //TEMP
-    this._id = id || uuid.v4();
+    // this._id = id || uuid.v4();
+    this._id = id || this._center
 
   }
 

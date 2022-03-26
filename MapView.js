@@ -1,11 +1,12 @@
 import React, {useState, useEffect } from 'react';
-import { TileLayer, Polygon, MapContainer, useMap, LayerGroup, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+// import { TileLayer, Polygon, MapContainer, useMap, LayerGroup, Marker, Popup } from 'react-leaflet';
+// import 'leaflet/dist/leaflet.css';
 import Geolocation from '@react-native-community/geolocation';
-import L from 'leaflet';
+// import L from 'leaflet';
 import {createNewIntersections, findExistingIntersections} from './startingover.js';
 import {storeData, getMyObject, getLocationPolygon, updateUserPolygon, removeData} from './storage.js';
 import StreetPolygon from './StreetPolygon.js';
+import { ExpoLeaflet } from "expo-leaflet";
 
 const debug = false;
 var logger = debug ? console.log.bind(console) : function () {};
@@ -27,14 +28,14 @@ const rad = 0.004;
 var zoom = 16;
 const colorSchema = {0: "dark blue", 1: 'green', 2: 'orange', 3: 'red', 4:'purple', 5:'blue'}
 
-delete L.Icon.Default.prototype._getIconUrl;
+// delete L.Icon.Default.prototype._getIconUrl;
 
 //Gets the needed icon
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-    iconUrl: require('leaflet/dist/images/marker-icon.png'),
-    shadowUrl: require('leaflet/dist/images/marker-shadow.png')
-});
+// L.Icon.Default.mergeOptions({
+//     iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+//     iconUrl: require('leaflet/dist/images/marker-icon.png'),
+//     shadowUrl: require('leaflet/dist/images/marker-shadow.png')
+// });
 
 function MultiPoly(polygons) {
   const log = getLogger("MultiPoly", true);
@@ -156,13 +157,13 @@ function PolyMap(){
 
 function MapView() {
   return(
-    <MapContainer>
+    <ExpoLeaflet>
       <TileLayer
         url="http://tile.stamen.com/toner/{z}/{x}/{y}.png"
         attribution="Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL."
       />
       <PolyMap />
-    </MapContainer>
+    </ExpoLeaflet>
     )
 }
 
